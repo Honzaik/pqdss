@@ -26,6 +26,7 @@ import eu.europa.esig.dss.model.DSSDocument;
 import eu.europa.esig.dss.spi.DSSUtils;
 import eu.europa.esig.dss.xml.common.definition.xmldsig.XMLDSigElement;
 import eu.europa.esig.dss.xml.common.definition.xmldsig.XMLDSigPath;
+import org.apache.xml.security.signature.XMLSignatureByteInput;
 import org.apache.xml.security.signature.XMLSignatureInput;
 import org.apache.xml.security.utils.resolver.ResourceResolverContext;
 import org.apache.xml.security.utils.resolver.ResourceResolverException;
@@ -67,7 +68,7 @@ public class CounterSignatureResolver extends ResourceResolverSpi {
 	}
 
 	private XMLSignatureInput createFromNode(Node node) {
-		final XMLSignatureInput result = new XMLSignatureInput(DomUtils.serializeNode(node));
+		final XMLSignatureInput result = new XMLSignatureByteInput(DomUtils.serializeNode(node));
 		result.setMIMEType(MimeTypeEnum.XML.getMimeTypeString());
 		return result;
 	}

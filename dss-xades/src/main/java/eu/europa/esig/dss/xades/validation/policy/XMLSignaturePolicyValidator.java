@@ -24,6 +24,7 @@ import eu.europa.esig.dss.model.signature.SignaturePolicyValidationResult;
 import eu.europa.esig.dss.xades.validation.XAdESSignaturePolicy;
 import org.apache.xml.security.exceptions.XMLSecurityException;
 import org.apache.xml.security.signature.XMLSignatureInput;
+import org.apache.xml.security.signature.XMLSignatureNodeInput;
 import org.apache.xml.security.transforms.Transforms;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -134,7 +135,7 @@ public class XMLSignaturePolicyValidator extends AbstractSignaturePolicyValidato
 			Transforms transforms = new Transforms(transformsElement, "");
 
 			Document document = DomUtils.buildDOM(policyDocument);
-			XMLSignatureInput xmlSignatureInput = new XMLSignatureInput(document);
+			XMLSignatureInput xmlSignatureInput = new XMLSignatureNodeInput(document);
 
 			XMLSignatureInput xmlSignatureInputOut = transforms.performTransforms(xmlSignatureInput);
 			byte[] bytesToBeDigested = xmlSignatureInputOut.getBytes();

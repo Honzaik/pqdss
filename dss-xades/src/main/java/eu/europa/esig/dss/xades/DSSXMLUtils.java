@@ -35,6 +35,7 @@ import eu.europa.esig.dss.xades.reference.ReferenceOutputType;
 import eu.europa.esig.dss.xades.signature.PrettyPrintTransformer;
 import eu.europa.esig.dss.xades.validation.DSSDocumentXMLSignatureInput;
 import eu.europa.esig.dss.xades.validation.DetachedSignatureResolver;
+import eu.europa.esig.dss.xades.validation.DigestDocumentXMLSignatureInput;
 import eu.europa.esig.dss.xades.validation.XAdESSignature;
 import eu.europa.esig.dss.xml.common.definition.AbstractPath;
 import eu.europa.esig.dss.xml.common.definition.DSSElement;
@@ -1329,6 +1330,8 @@ public final class DSSXMLUtils {
 			XMLSignatureInput xmlSignatureInput = getClosedContentsBeforeTransformation(reference);
 			if (xmlSignatureInput instanceof DSSDocumentXMLSignatureInput) {
 				return ((DSSDocumentXMLSignatureInput) xmlSignatureInput).getDocumentName();
+			} else if (xmlSignatureInput instanceof DigestDocumentXMLSignatureInput) {
+				return ((DigestDocumentXMLSignatureInput) xmlSignatureInput).getDocumentName();
 			}
 		} catch (Exception e) {
 			String errorMessage = "Unable to verify matching document name for a reference with Id [{}] : {}";
@@ -1352,11 +1355,12 @@ public final class DSSXMLUtils {
 	 */
 	private static XMLSignatureInput getClosedContentsBeforeTransformation(Reference reference) {
 		try {
-			XMLSignatureInput xmlSignatureInput = reference.getContentsBeforeTransformation();
-			if (xmlSignatureInput != null) {
-				Utils.closeQuietly(xmlSignatureInput.getOctetStreamReal());
-			}
-			return xmlSignatureInput;
+			return reference.getContentsBeforeTransformation();
+//			XMLSignatureInput xmlSignatureInput = reference.getContentsBeforeTransformation();
+//			if (xmlSignatureInput != null) {
+//				Utils.closeQuietly(xmlSignatureInput.getUnprocessedInput());
+//			}
+//			return xmlSignatureInput;
 
 		} catch (Exception e) {
 			String errorMessage = "Unable to get contents before transformation for a reference with Id '{}' : {}";

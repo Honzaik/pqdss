@@ -23,6 +23,7 @@ package eu.europa.esig.dss.xades.reference;
 import eu.europa.esig.dss.model.DSSException;
 import org.apache.xml.security.exceptions.XMLSecurityException;
 import org.apache.xml.security.signature.XMLSignatureInput;
+import org.apache.xml.security.signature.XMLSignatureNodeInput;
 import org.w3c.dom.Node;
 
 import java.io.IOException;
@@ -51,7 +52,7 @@ public class DSSTransformOutput {
      * @param node {@link Node}
      */
     public DSSTransformOutput(Node node) {
-        this(new XMLSignatureInput(node));
+        this(new XMLSignatureNodeInput(node));
     }
 
     /**

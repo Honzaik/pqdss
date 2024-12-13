@@ -276,7 +276,7 @@ public class XAdESTimestampMessageDigestBuilder implements TimestampMessageDiges
 
 		} else {
 			XMLSignatureInput input = reference.getContentsAfterTransformation();
-			digestCalculator.update(input.getOctetStream());
+			digestCalculator.update(input.getUnprocessedInput());
 		}
 
 	}

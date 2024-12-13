@@ -20,10 +20,8 @@
  */
 package eu.europa.esig.dss.xades.validation;
 
-import eu.europa.esig.dss.enumerations.DigestAlgorithm;
 import eu.europa.esig.dss.model.DSSDocument;
-import eu.europa.esig.dss.utils.Utils;
-import org.apache.xml.security.signature.XMLSignatureInput;
+import org.apache.xml.security.signature.XMLSignatureStreamInput;
 
 import java.io.InputStream;
 
@@ -31,7 +29,7 @@ import java.io.InputStream;
  * This class represents an implementation of an {@code XMLSignatureInput} created on a base of {@code DSSDocument}
  *
  */
-public class DSSDocumentXMLSignatureInput extends XMLSignatureInput {
+public class DSSDocumentXMLSignatureInput extends XMLSignatureStreamInput {
 
     /** The detached document to be provided */
     private final DSSDocument document;
@@ -53,23 +51,6 @@ public class DSSDocumentXMLSignatureInput extends XMLSignatureInput {
         return document.openStream();
     }
 
-    /**
-     * Constructor for an {@code XMLSignatureInput} from a base64-encoded document digest
-     *
-     * @param document {@link DSSDocument}
-     * @param digestAlgorithm {@link DigestAlgorithm} to be used for a digest computation
-     */
-    protected DSSDocumentXMLSignatureInput(final DSSDocument document, final DigestAlgorithm digestAlgorithm) {
-        super(getBase64Digest(document, digestAlgorithm));
-        this.document = document;
-        this.preCalculatedDigest = super.getPreCalculatedDigest(); // get digest provided in constructor
-    }
-
-    private static String getBase64Digest(DSSDocument document, DigestAlgorithm digestAlgorithm) {
-        byte[] digestValue = document.getDigestValue(digestAlgorithm);
-        return Utils.toBase64(digestValue);
-    }
-
     @Override
     public String getMIMEType() {
         if (document.getMimeType() != null) {
@@ -88,13 +69,7 @@ public class DSSDocumentXMLSignatureInput extends XMLSignatureInput {
     }
 
     @Override
-    public boolean isPreCalculatedDigest() {
-        return preCalculatedDigest != null;
-    }
-
-    @Override
     public String getPreCalculatedDigest() {
-        Utils.closeQuietly(getOctetStreamReal()); // close original InputStream
         return preCalculatedDigest;
     }
 

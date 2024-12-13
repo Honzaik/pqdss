@@ -21,13 +21,28 @@
 package eu.europa.esig.dss.xades.validation;
 
 import eu.europa.esig.dss.enumerations.DigestAlgorithm;
+import eu.europa.esig.dss.model.DSSDocument;
 import eu.europa.esig.dss.model.DigestDocument;
+import eu.europa.esig.dss.utils.Utils;
+import org.apache.xml.security.signature.XMLSignatureDigestInput;
+
+import java.util.logging.Logger;
 
 /**
  * This class is use for a {@code XMLSignatureInput} definition from a {@code DigestDocument}
  *
  */
-public class DigestDocumentXMLSignatureInput extends DSSDocumentXMLSignatureInput {
+public class DigestDocumentXMLSignatureInput extends XMLSignatureDigestInput
+{
+
+    /** The detached document to be provided */
+    private final DigestDocument document;
+
+    /** Pre-calculated digest value of the object in base64. */
+    private String preCalculatedDigest;
+
+    private Logger LOG = Logger.getLogger(DigestDocumentXMLSignatureInput.class.getName());
+
 
     /**
      * Constructor for an {@code XMLSignatureInput} from a {@code DigestDocument}
@@ -36,7 +51,46 @@ public class DigestDocumentXMLSignatureInput extends DSSDocumentXMLSignatureInpu
      * @param digestAlgorithm {@link DigestAlgorithm} used for the corresponding reference digest computation
      */
     public DigestDocumentXMLSignatureInput(final DigestDocument document, DigestAlgorithm digestAlgorithm) {
-        super(document, digestAlgorithm);
+        super(getBase64Digest(document, digestAlgorithm));
+        this.document = document;
+        this.preCalculatedDigest = super.getPreCalculatedDigest();
     }
+
+    @Override
+    public String getMIMEType() {
+        if (document.getMimeType() != null) {
+            return document.getMimeType().getMimeTypeString();
+        }
+        return null;
+    }
+
+    /**
+     * Returns a document name
+     *
+     * @return {@link String}
+     */
+    public String getDocumentName() {
+        return document.getName();
+    }
+
+    @Override
+    public String getPreCalculatedDigest() {
+        return preCalculatedDigest;
+    }
+
+    /**
+     * Sets the pre-calculated digest to avoid document streaming
+     *
+     * @param preCalculatedDigest {@link String} base64-encoded value
+     */
+    public void setPreCalculatedDigest(String preCalculatedDigest) {
+        this.preCalculatedDigest = preCalculatedDigest;
+    }
+
+    private static String getBase64Digest(DSSDocument document, DigestAlgorithm digestAlgorithm) {
+        byte[] digestValue = document.getDigestValue(digestAlgorithm);
+        return Utils.toBase64(digestValue);
+    }
+
 
 }
