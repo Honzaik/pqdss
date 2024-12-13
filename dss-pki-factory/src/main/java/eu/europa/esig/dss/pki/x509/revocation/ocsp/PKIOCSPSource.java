@@ -428,7 +428,15 @@ public class PKIOCSPSource implements OCSPSource {
         } else {
             currentEncryptionAlgorithm = ocspResponder.getEncryptionAlgorithm();
         }
-        return SignatureAlgorithm.getAlgorithm(currentEncryptionAlgorithm, digestAlgorithm);
+
+        //ML-DSA fix because it does have an internal hash SHAKE (SHA-3) so we dont define it as such in SignatureAlgorithm
+        //but here digestAlgorithm is also used to hash other stuff so it cannot be null globally
+        DigestAlgorithm signatureDigestAlgorithm = this.digestAlgorithm;
+        if (EncryptionAlgorithm.ML_DSA_44.isEquivalent(currentEncryptionAlgorithm)) {
+            signatureDigestAlgorithm = null;
+        }
+
+        return SignatureAlgorithm.getAlgorithm(currentEncryptionAlgorithm, signatureDigestAlgorithm);
     }
 
     /**

@@ -24,6 +24,7 @@ import eu.europa.esig.dss.model.x509.CertificateToken;
 import eu.europa.esig.dss.model.x509.Token;
 import eu.europa.esig.dss.utils.Utils;
 import org.bouncycastle.jcajce.interfaces.EdDSAPublicKey;
+import org.bouncycastle.jcajce.interfaces.MLDSAPublicKey;
 import org.bouncycastle.jcajce.interfaces.XDHPublicKey;
 import org.bouncycastle.jce.provider.JCEECPublicKey;
 import org.bouncycastle.jce.spec.ECParameterSpec;
@@ -140,6 +141,9 @@ public final class DSSPKUtils {
 //			int prefixSize = Utils.fromHex("302a300506032b656e032100").length;
 			int prefixSize = Utils.fromHex("3042300506032b656f033900").length;
 			return xdhPK.getEncoded().length - prefixSize;
+		} else if (publicKey instanceof MLDSAPublicKey) {
+			MLDSAPublicKey mldsaPublicKey = (MLDSAPublicKey) publicKey;
+			return mldsaPublicKey.getEncoded().length;
 		} else {
 			LOG.warn("Unknown public key infrastructure: {}", publicKey.getClass().getName());
 		}

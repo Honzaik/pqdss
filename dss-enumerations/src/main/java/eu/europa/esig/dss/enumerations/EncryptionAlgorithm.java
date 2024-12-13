@@ -53,6 +53,10 @@ public enum EncryptionAlgorithm implements OidBasedEnum {
 	/** EdDSA */
 	EDDSA("EdDSA", "", "EdDSA"),
 
+	ML_DSA_44("ML-DSA-44", "2.16.840.1.101.3.4.3.17", "ML-DSA-44"),
+	ML_DSA_65("ML-DSA-65", "2.16.840.1.101.3.4.3.18", "ML-DSA-65"),
+	ML_DSA_87("ML-DSA-87", "2.16.840.1.101.3.4.3.19", "ML-DSA-87"),
+
 	/** HMAC */
 	HMAC("HMAC", "", "");
 
@@ -218,6 +222,9 @@ public enum EncryptionAlgorithm implements OidBasedEnum {
 		if (this.isEdDSAFamily() && encryptionAlgorithm.isEdDSAFamily()) {
 			return true;
 		}
+		if (this.isMLDSAFamily() && encryptionAlgorithm.isMLDSAFamily()) {
+			return true;
+		}
 		return false;
 	}
 
@@ -231,6 +238,9 @@ public enum EncryptionAlgorithm implements OidBasedEnum {
 
 	private boolean isEdDSAFamily() {
 		return X25519 == this || X448 == this || EDDSA == this;
+	}
+	private boolean isMLDSAFamily() {
+		return ML_DSA_44 == this || ML_DSA_65 == this || ML_DSA_87 == this;
 	}
 
 }
