@@ -56,6 +56,7 @@ public abstract class AbstractSignatureParameters<TP extends SerializableTimesta
 	 * This field contains the signing certificate.
 	 */
 	private CertificateToken signingCertificate;
+	private CertificateToken pqSigningCertificate;
 
 	/**
 	 * Optional parameter that contains the actual canonicalized data that was used when creating the
@@ -69,6 +70,7 @@ public abstract class AbstractSignatureParameters<TP extends SerializableTimesta
 	 * This field contains the {@code List} of chain of certificates. It includes the signing certificate.
 	 */
 	private List<CertificateToken> certificateChain = new LinkedList<>();
+	private List<CertificateToken> pqCertificateChain = new LinkedList<>();
 
 	/**
 	 * This parameter is here because that's a signed attribute. It must be computed before getDataToSign/signDocument
@@ -141,6 +143,9 @@ public abstract class AbstractSignatureParameters<TP extends SerializableTimesta
 	public CertificateToken getSigningCertificate() {
 		return signingCertificate;
 	}
+	public CertificateToken getPqSigningCertificate() {
+		return this.pqSigningCertificate;
+	}
 
 	/**
 	 * Set the signing certificate. The encryption algorithm is also set from the
@@ -155,6 +160,11 @@ public abstract class AbstractSignatureParameters<TP extends SerializableTimesta
 	public void setSigningCertificate(final CertificateToken signingCertificate) {
 		this.signingCertificate = signingCertificate;
 		setEncryptionAlgorithm(EncryptionAlgorithm.forKey(signingCertificate.getPublicKey()));
+	}
+
+	public void setPqSigningCertificate (final CertificateToken signingCertificate) {
+		this.pqSigningCertificate = signingCertificate;
+		setPqEncryptionAlgorithm(EncryptionAlgorithm.forKey(this.pqSigningCertificate.getPublicKey()));
 	}
 
 	/**
@@ -184,6 +194,11 @@ public abstract class AbstractSignatureParameters<TP extends SerializableTimesta
 		return certificateChain;
 	}
 
+	public List<CertificateToken> getPqCertificateChain()
+	{
+		return this.pqCertificateChain;
+	}
+
 	/**
 	 * Set the certificate chain
 	 *
@@ -191,6 +206,10 @@ public abstract class AbstractSignatureParameters<TP extends SerializableTimesta
 	 */
 	public void setCertificateChain(final List<CertificateToken> certificateChain) {
 		this.certificateChain = certificateChain;
+	}
+
+	public void setPqCertificateChain(final List<CertificateToken> certificateChain) {
+		this.pqCertificateChain = certificateChain;
 	}
 
 	/**
@@ -204,6 +223,14 @@ public abstract class AbstractSignatureParameters<TP extends SerializableTimesta
 		for (final CertificateToken certificate : certificateChainArray) {
 			if (certificate != null && !certificateChain.contains(certificate)) {
 				certificateChain.add(certificate);
+			}
+		}
+	}
+
+	public void setPqCertificateChain(final CertificateToken... certificateChainArray) {
+		for (final CertificateToken certificate : certificateChainArray) {
+			if (certificate != null && !this.pqCertificateChain.contains(certificate)) {
+				this.pqCertificateChain.add(certificate);
 			}
 		}
 	}
