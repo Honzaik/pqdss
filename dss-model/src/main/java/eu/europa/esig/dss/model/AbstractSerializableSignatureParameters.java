@@ -88,25 +88,21 @@ public abstract class AbstractSerializableSignatureParameters<TP extends Seriali
 	 * XAdES: The ds:SignatureMethod indicates the algorithms used to sign ds:SignedInfo.
 	 */
 	private SignatureAlgorithm signatureAlgorithm = SignatureAlgorithm.RSA_SSA_PSS_SHA512_MGF1;
-	private SignatureAlgorithm pqSignatureAlgorithm = null;
 
 	/**
 	 * The encryption algorithm shall be automatically extracted from the signing token.
 	 */
 	private EncryptionAlgorithm encryptionAlgorithm = signatureAlgorithm.getEncryptionAlgorithm();
-	private EncryptionAlgorithm pqEncryptionAlgorithm = signatureAlgorithm.getEncryptionAlgorithm();
 
 	/**
 	 * XAdES: The digest algorithm used to hash ds:SignedInfo.
 	 */
 	private DigestAlgorithm digestAlgorithm = signatureAlgorithm.getDigestAlgorithm();
-	private DigestAlgorithm pqDigestAlgorithm = signatureAlgorithm.getDigestAlgorithm();
 
 	/**
 	 * XAdES: The digest algorithm used to hash ds:Reference.
 	 */
 	private DigestAlgorithm referenceDigestAlgorithm;
-	private DigestAlgorithm pqReferenceDigestAlgorithm;
 
 	/**
 	 * The object representing the parameters related to B- level.
@@ -265,10 +261,6 @@ public abstract class AbstractSerializableSignatureParameters<TP extends Seriali
 		return digestAlgorithm;
 	}
 
-	public DigestAlgorithm getPqDigestAlgorithm() {
-		return this.pqDigestAlgorithm;
-	}
-
 	/**
 	 * Set the digest algorithm
 	 * 
@@ -280,14 +272,6 @@ public abstract class AbstractSerializableSignatureParameters<TP extends Seriali
 		this.digestAlgorithm = digestAlgorithm;
 		if (this.encryptionAlgorithm != null) {
 			signatureAlgorithm = SignatureAlgorithm.getAlgorithm(this.encryptionAlgorithm, this.digestAlgorithm);
-		}
-	}
-
-	public void setPqDigestAlgorithm(final DigestAlgorithm digestAlgorithm) {
-		Objects.requireNonNull(digestAlgorithm, "PQ DigestAlgorithm cannot be null!");
-		this.pqDigestAlgorithm = digestAlgorithm;
-		if (this.pqEncryptionAlgorithm != null) {
-			this.pqSignatureAlgorithm = SignatureAlgorithm.getAlgorithm(this.pqEncryptionAlgorithm, this.pqDigestAlgorithm);
 		}
 	}
 
@@ -332,10 +316,6 @@ public abstract class AbstractSerializableSignatureParameters<TP extends Seriali
 		return encryptionAlgorithm;
 	}
 
-	public EncryptionAlgorithm getPqEncryptionAlgorithm() {
-		return this.pqEncryptionAlgorithm;
-	}
-
 	/**
 	 * This method sets encryption algorithm to be used on signature creation.
 	 * The method is useful when a specific encryption algorithm is expected.
@@ -353,20 +333,9 @@ public abstract class AbstractSerializableSignatureParameters<TP extends Seriali
 		}
 	}
 
-	public void setPqEncryptionAlgorithm(final EncryptionAlgorithm encryptionAlgorithm) {
-		this.pqEncryptionAlgorithm = encryptionAlgorithm;
-		if (this.pqDigestAlgorithm != null) {
-			this.pqSignatureAlgorithm = SignatureAlgorithm.getAlgorithm(this.pqEncryptionAlgorithm, this.pqDigestAlgorithm);
-		}
-	}
-
 	@Override
 	public SignatureAlgorithm getSignatureAlgorithm() {
 		return signatureAlgorithm;
-	}
-
-	public SignatureAlgorithm getPqSignatureAlgorithm() {
-		return this.pqSignatureAlgorithm;
 	}
 
 	/**
@@ -378,10 +347,6 @@ public abstract class AbstractSerializableSignatureParameters<TP extends Seriali
 		return referenceDigestAlgorithm;
 	}
 
-	public DigestAlgorithm getPqReferenceDigestAlgorithm() {
-		return this.pqReferenceDigestAlgorithm;
-	}
-
 	/**
 	 * Sets the DigestAlgorithm to be used for reference digest calculation
 	 *
@@ -389,10 +354,6 @@ public abstract class AbstractSerializableSignatureParameters<TP extends Seriali
 	 */
 	public void setReferenceDigestAlgorithm(DigestAlgorithm referenceDigestAlgorithm) {
 		this.referenceDigestAlgorithm = referenceDigestAlgorithm;
-	}
-
-	public void setPqReferenceDigestAlgorithm(DigestAlgorithm referenceDigestAlgorithm) {
-		this.pqReferenceDigestAlgorithm = referenceDigestAlgorithm;
 	}
 
 	/**

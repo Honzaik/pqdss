@@ -20,14 +20,10 @@
  */
 package eu.europa.esig.dss.cades.signature;
 
-import eu.europa.esig.dss.enumerations.DigestAlgorithm;
-import eu.europa.esig.dss.enumerations.SignatureAlgorithm;
 import eu.europa.esig.dss.spi.DSSUtils;
 import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
 import org.bouncycastle.operator.ContentSigner;
-import org.bouncycastle.operator.DefaultDigestAlgorithmIdentifierFinder;
 import org.bouncycastle.operator.DefaultSignatureAlgorithmIdentifierFinder;
-import org.bouncycastle.operator.ExtendedContentSigner;
 
 import java.io.ByteArrayOutputStream;
 
@@ -35,16 +31,13 @@ import java.io.ByteArrayOutputStream;
  * ContentSigner using a provided pre-computed signature
  *
  */
-public class CustomContentSigner implements ExtendedContentSigner
-{
+public class CustomContentSigner implements ContentSigner {
 
     /** The pre-computed SignatureValue */
     private byte[] preComputedSignature;
 
     /** The signature algorithm identifier */
     private final AlgorithmIdentifier algorithmIdentifier;
-    private AlgorithmIdentifier digestAlgorithmIdentifier;
-    private final SignatureAlgorithm signatureAlgorithm;
 
     /** The byteOutputStream used to write the data to */
     private ByteArrayOutputStream byteOutputStream = new ByteArrayOutputStream();
@@ -68,11 +61,6 @@ public class CustomContentSigner implements ExtendedContentSigner
 
 	    this.algorithmIdentifier = new DefaultSignatureAlgorithmIdentifierFinder().find(algorithmIdentifier);
         this.preComputedSignature = preComputedSignature;
-        this.signatureAlgorithm = SignatureAlgorithm.forJAVA((algorithmIdentifier));
-        if (this.signatureAlgorithm.getDigestAlgorithm() != null) {
-            this.digestAlgorithmIdentifier = new DefaultDigestAlgorithmIdentifierFinder().find(this.signatureAlgorithm.getDigestAlgorithm().getOid());
-        }
-
     }
 
     @Override
@@ -90,16 +78,4 @@ public class CustomContentSigner implements ExtendedContentSigner
         return preComputedSignature;
     }
 
-    public void setDigestAlgorithmDigestAlgorithm(DigestAlgorithm digestAlgorithm)
-    {
-        if (digestAlgorithm != null) {
-            this.digestAlgorithmIdentifier = new DefaultDigestAlgorithmIdentifierFinder().find(digestAlgorithm.getOid());
-        }
-    }
-
-    @Override
-    public AlgorithmIdentifier getDigestAlgorithmIdentifier()
-    {
-        return this.digestAlgorithmIdentifier;
-    }
 }

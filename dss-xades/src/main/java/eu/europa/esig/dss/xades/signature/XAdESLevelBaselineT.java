@@ -49,7 +49,6 @@ import eu.europa.esig.dss.xades.XAdESProfileParameters;
 import eu.europa.esig.dss.xades.XAdESSignatureParameters;
 import eu.europa.esig.dss.xades.XAdESTimestampParameters;
 import eu.europa.esig.dss.xades.definition.XAdESNamespace;
-import eu.europa.esig.dss.xades.definition.honza.HonzaElement;
 import eu.europa.esig.dss.xades.definition.xades111.XAdES111Attribute;
 import eu.europa.esig.dss.xades.definition.xades111.XAdES111Element;
 import eu.europa.esig.dss.xades.definition.xades122.XAdES122Attribute;
@@ -58,7 +57,6 @@ import eu.europa.esig.dss.xades.definition.xades141.XAdES141Element;
 import eu.europa.esig.dss.xades.validation.XAdESAttributeIdentifier;
 import eu.europa.esig.dss.xades.validation.XAdESSignature;
 import eu.europa.esig.dss.xades.validation.XMLDocumentAnalyzer;
-import eu.europa.esig.dss.xml.common.definition.DSSNamespace;
 import eu.europa.esig.dss.xml.common.definition.xmldsig.XMLDSigAttribute;
 import eu.europa.esig.dss.xml.common.definition.xmldsig.XMLDSigElement;
 import eu.europa.esig.dss.xml.utils.DomUtils;
@@ -216,15 +214,6 @@ public class XAdESLevelBaselineT extends ExtensionBuilder implements SignatureEx
 			final DSSMessageDigest messageDigest = xadesSignature.getTimestampSource()
 					.getSignatureTimestampMessageDigest(digestAlgorithm, canonicalizationMethod);
 			createXAdESTimeStampType(TimestampType.SIGNATURE_TIMESTAMP, canonicalizationMethod, messageDigest);
-
-			Element unsignedDataObjectProperties = DomUtils.addElement(documentDom, unsignedPropertiesDom, getXadesNamespace(), getCurrentXAdESElements().getElementUnsignedDataObjectProperties());
-			Element myPropertyContainer = DomUtils.addElement(documentDom, unsignedDataObjectProperties, getXadesNamespace(), getCurrentXAdESElements().getElementUnsignedDataObjectProperty());
-
-			DSSNamespace myNamespace = new DSSNamespace("http://honzaik.xyz/#", "honza");
-			Element myProperty = DomUtils.addElement(documentDom, myPropertyContainer, myNamespace, HonzaElement.MY_ELEMENT);
-			DomUtils.setTextNode(documentDom, myProperty, "yoyoyoy");
-
-
 
 			unsignedSignaturePropertiesDom = indentIfPrettyPrint(unsignedSignaturePropertiesDom, levelBUnsignedProperties);
 		}
