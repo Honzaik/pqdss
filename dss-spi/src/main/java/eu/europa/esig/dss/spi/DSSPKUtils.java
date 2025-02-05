@@ -23,6 +23,7 @@ package eu.europa.esig.dss.spi;
 import eu.europa.esig.dss.model.x509.CertificateToken;
 import eu.europa.esig.dss.model.x509.Token;
 import eu.europa.esig.dss.utils.Utils;
+import org.bouncycastle.jcajce.CompositePublicKey;
 import org.bouncycastle.jcajce.interfaces.EdDSAPublicKey;
 import org.bouncycastle.jcajce.interfaces.MLDSAPublicKey;
 import org.bouncycastle.jcajce.interfaces.XDHPublicKey;
@@ -144,6 +145,9 @@ public final class DSSPKUtils {
 		} else if (publicKey instanceof MLDSAPublicKey) {
 			MLDSAPublicKey mldsaPublicKey = (MLDSAPublicKey) publicKey;
 			return mldsaPublicKey.getEncoded().length;
+		} else if (publicKey instanceof CompositePublicKey) {
+			CompositePublicKey compositePublicKey = (CompositePublicKey) publicKey;
+			return compositePublicKey.getEncoded().length;
 		} else {
 			LOG.warn("Unknown public key infrastructure: {}", publicKey.getClass().getName());
 		}

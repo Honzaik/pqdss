@@ -53,9 +53,14 @@ public enum EncryptionAlgorithm implements OidBasedEnum {
 	/** EdDSA */
 	EDDSA("EdDSA", "", "EdDSA"),
 
+	/** ML-DSA */
 	ML_DSA_44("ML-DSA-44", "2.16.840.1.101.3.4.3.17", "ML-DSA-44"),
 	ML_DSA_65("ML-DSA-65", "2.16.840.1.101.3.4.3.18", "ML-DSA-65"),
 	ML_DSA_87("ML-DSA-87", "2.16.840.1.101.3.4.3.19", "ML-DSA-87"),
+
+	/** COMPOSITES (hybrids) */
+	ML_DSA_44_ECDSA_P256_SHA256("MLDSA44-ECDSA-P256-SHA256", "2.16.840.1.114027.80.8.1.24", "MLDSA44-ECDSA-P256-SHA256"),
+	ML_DSA_87_ECDSA_P384_SHA384("MLDSA87-ECDSA-P384-SHA384", "2.16.840.1.114027.80.8.1.31", "MLDSA87-ECDSA-P384-SHA384"),
 
 	/** HMAC */
 	HMAC("HMAC", "", "");
@@ -225,6 +230,9 @@ public enum EncryptionAlgorithm implements OidBasedEnum {
 		if (this.isMLDSAFamily() && encryptionAlgorithm.isMLDSAFamily()) {
 			return true;
 		}
+		if (this.isCompositeFamily() && encryptionAlgorithm.isCompositeFamily()) {
+			return true;
+		}
 		return false;
 	}
 
@@ -241,6 +249,9 @@ public enum EncryptionAlgorithm implements OidBasedEnum {
 	}
 	private boolean isMLDSAFamily() {
 		return ML_DSA_44 == this || ML_DSA_65 == this || ML_DSA_87 == this;
+	}
+	private boolean isCompositeFamily() {
+		return ML_DSA_44_ECDSA_P256_SHA256 == this || ML_DSA_87_ECDSA_P384_SHA384 == this;
 	}
 
 }
