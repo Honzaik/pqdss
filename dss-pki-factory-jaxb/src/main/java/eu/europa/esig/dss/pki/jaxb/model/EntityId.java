@@ -28,7 +28,7 @@ import eu.europa.esig.dss.pki.jaxb.XmlEntityKey;
 public class EntityId {
 
     /** The issuer distinguished name */
-    private String issuerName;
+    private String subjectName;
 
     /** The certificate's serial number */
     private Long serialNumber;
@@ -46,8 +46,8 @@ public class EntityId {
      * @param issuerName {@link String} issuer's DN
      * @param serialNumber {@link Long} certificate's serial number
      */
-    public EntityId(String issuerName, Long serialNumber) {
-        this.issuerName = issuerName;
+    public EntityId(String subjectName, Long serialNumber) {
+        this.subjectName = subjectName;
         this.serialNumber = serialNumber;
     }
 
@@ -65,17 +65,17 @@ public class EntityId {
      *
      * @return {@link String}
      */
-    public String getIssuerName() {
-        return issuerName;
+    public String getSubjectName() {
+        return subjectName;
     }
 
     /**
      * Sets issuer's distinguished name
      *
-     * @param issuerName {@link String}
+     * @param subjectName {@link String}
      */
-    public void setIssuerName(String issuerName) {
-        this.issuerName = issuerName;
+    public void setSubjectName(String subjectName) {
+        this.subjectName = subjectName;
     }
 
     /**
@@ -100,7 +100,7 @@ public class EntityId {
     public int hashCode() {
         final int prime = 31;
         int result = 1;
-        result = prime * result + ((issuerName == null) ? 0 : issuerName.hashCode());
+        result = prime * result + ((subjectName == null) ? 0 : subjectName.hashCode());
         result = prime * result + ((serialNumber == null) ? 0 : serialNumber.hashCode());
         return result;
     }
@@ -111,9 +111,9 @@ public class EntityId {
         if (obj == null) return false;
         if (getClass() != obj.getClass()) return false;
         EntityId other = (EntityId) obj;
-        if (issuerName == null) {
-            if (other.issuerName != null) return false;
-        } else if (!issuerName.equals(other.issuerName)) return false;
+        if (subjectName == null) {
+            if (other.subjectName != null) return false;
+        } else if (!subjectName.equals(other.subjectName)) return false;
         if (serialNumber == null) {
             if (other.serialNumber != null) return false;
         } else if (!serialNumber.equals(other.serialNumber)) return false;
@@ -122,7 +122,7 @@ public class EntityId {
 
     @Override
     public String toString() {
-        return "EntityId [issuerName=" + issuerName + ", serialNumber=" + serialNumber + "]";
+        return "EntityId [subjectName=" + subjectName + ", serialNumber=" + serialNumber + "]";
     }
 
 }

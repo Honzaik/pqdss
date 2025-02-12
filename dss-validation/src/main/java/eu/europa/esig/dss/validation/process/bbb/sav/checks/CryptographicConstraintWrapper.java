@@ -87,15 +87,17 @@ public class CryptographicConstraintWrapper {
 	 * @param digestAlgorithm {@link DigestAlgorithm} to check
 	 * @return TRUE if the algorithm is reliable, FALSE otherwise
 	 */
-	public boolean isDigestAlgorithmReliable(DigestAlgorithm digestAlgorithm) {
-		if (digestAlgorithm != null && constraint != null) {
-			ListAlgo acceptableDigestAlgos = constraint.getAcceptableDigestAlgo();
-			Algo algo = getMatchingAlgo(acceptableDigestAlgos, digestAlgorithm);
-			return algo != null;
+	public boolean isDigestAlgorithmReliable(DigestAlgorithm digestAlgorithm)
+	{
+		if (constraint == null) {
+			return false;
 		}
-		return false;
-	}
 
+		ListAlgo acceptableDigestAlgos = constraint.getAcceptableDigestAlgo();
+
+		Algo algo = getMatchingAlgo(acceptableDigestAlgos, digestAlgorithm);
+		return algo != null;
+	}
 	/**
 	 * Checks if the {code keyLength} for {@link EncryptionAlgorithm} is reliable (acceptable)
 	 *
@@ -381,7 +383,11 @@ public class CryptographicConstraintWrapper {
 		final List<Algo> result = new ArrayList<>();
 		if (listAlgo != null) {
 			for (Algo algo : listAlgo.getAlgos()) {
-				if (algo.getValue().equals(digestAlgorithm.getName())) {
+				if (digestAlgorithm != null && algo.getValue().equals(digestAlgorithm.getName())) {
+					result.add(algo);
+				}
+				//allow for null digests
+				if (digestAlgorithm == null && algo.getValue().toLowerCase().equals("null")) {
 					result.add(algo);
 				}
 			}
