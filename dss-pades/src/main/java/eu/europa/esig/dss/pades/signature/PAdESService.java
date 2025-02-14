@@ -182,6 +182,7 @@ public class PAdESService extends AbstractSignatureService<PAdESSignatureParamet
 		assertSigningCertificateValid(parameters);
 
 		final DSSMessageDigest messageDigest = computeDocumentDigest(toSignDocument, parameters);
+		LOG.info("digest used " + messageDigest.getAlgorithm().getName() + ", " + messageDigest.getAlgorithm().getOid());
 		return cmsForPAdESGenerationService.buildToBeSignedData(messageDigest, parameters);
 	}
 

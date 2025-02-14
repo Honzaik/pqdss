@@ -77,7 +77,7 @@ public class KeyPairBuilder {
                 return keyGenerator.generateKeyPair();
             } else if (EncryptionAlgorithm.EDDSA == encryptionAlgorithm) {
                 throw new UnsupportedOperationException("Please define one of X25519 or X448 EncryptionAlgorithm explicitly.");
-            } else if (EncryptionAlgorithm.ML_DSA_44.isEquivalent(encryptionAlgorithm) || EncryptionAlgorithm.ML_DSA_44_ECDSA_P256_SHA256.isEquivalent(encryptionAlgorithm)) {
+            } else if (EncryptionAlgorithm.ML_DSA_44.isEquivalent(encryptionAlgorithm) || EncryptionAlgorithm.HASH_ML_DSA_44_ECDSA_P256_SHA256.isEquivalent(encryptionAlgorithm)) {
                 KeyPairGenerator keyGenerator = KeyPairGenerator.getInstance(encryptionAlgorithm.getName(), DSSSecurityProvider.getSecurityProvider());
                 return keyGenerator.generateKeyPair();
             } else {

@@ -26,7 +26,9 @@ import eu.europa.esig.dss.model.DSSDocument;
 import eu.europa.esig.dss.model.DSSException;
 import eu.europa.esig.dss.spi.DSSASN1Utils;
 import eu.europa.esig.dss.spi.DSSUtils;
+import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.cms.AttributeTable;
+import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cms.DefaultSignedAttributeTableGenerator;
 import org.bouncycastle.cms.SignerId;
@@ -110,7 +112,14 @@ public class CMSSignerInfoGeneratorBuilder {
         if (includeUnsignedAttributes) {
             unsignedAttributes = cadesProfile.getUnsignedAttributes();
         }
-        return getSignerInfoGeneratorBuilder(dcp, signedAttributes, unsignedAttributes);
+        SignerInfoGeneratorBuilder signerInfoGeneratorBuilder = getSignerInfoGeneratorBuilder(dcp, signedAttributes, unsignedAttributes);
+
+//        if (parameters.getDigestAlgorithm() != null) {
+//            AlgorithmIdentifier digester = new AlgorithmIdentifier(new ASN1ObjectIdentifier(parameters.getDigestAlgorithm().getOid()));
+//            signerInfoGeneratorBuilder.setContentDigest(digester);
+//        }
+
+        return signerInfoGeneratorBuilder;
     }
 
     /**

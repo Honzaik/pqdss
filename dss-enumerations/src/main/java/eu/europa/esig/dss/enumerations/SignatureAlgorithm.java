@@ -369,15 +369,16 @@ public enum SignatureAlgorithm implements OidAndUriBasedEnum {
     /**
      * ML-DSA (no pre-hash)
      */
-    ML_DSA_44(EncryptionAlgorithm.ML_DSA_44, null),
-    ML_DSA_65(EncryptionAlgorithm.ML_DSA_65, null),
-    ML_DSA_87(EncryptionAlgorithm.ML_DSA_87, null),
+    ML_DSA_44(EncryptionAlgorithm.ML_DSA_44, DigestAlgorithm.SHAKE256),
+    ML_DSA_65(EncryptionAlgorithm.ML_DSA_65, DigestAlgorithm.SHAKE256),
+    ML_DSA_87(EncryptionAlgorithm.ML_DSA_87, DigestAlgorithm.SHAKE256),
 
     /**
      * Composite signatures (post-quantum hybrids)
      */
-    ML_DSA_44_ECDSA_P256_SHA256(EncryptionAlgorithm.ML_DSA_44_ECDSA_P256_SHA256, null),
-    ML_DSA_87_ECDSA_P384_SHA384(EncryptionAlgorithm.ML_DSA_87_ECDSA_P384_SHA384, null);
+    HASH_ML_DSA_44_ECDSA_P256_SHA256(EncryptionAlgorithm.HASH_ML_DSA_44_ECDSA_P256_SHA256, DigestAlgorithm.SHA256),
+    HASH_ML_DSA_65_ECDSA_P384_SHA512(EncryptionAlgorithm.HASH_ML_DSA_65_ECDSA_P384_SHA512, DigestAlgorithm.SHA512),
+    HASH_ML_DSA_87_ECDSA_P384_SHA512(EncryptionAlgorithm.HASH_ML_DSA_87_ECDSA_P384_SHA512, DigestAlgorithm.SHA512);
 
     /**
      * The encryption algorithm
@@ -468,8 +469,10 @@ public enum SignatureAlgorithm implements OidAndUriBasedEnum {
         xmlAlgorithms.put("http://www.w3.org/2023/02/xmldsig-pqc#ml-dsa-65", ML_DSA_65);
         xmlAlgorithms.put("http://www.w3.org/2023/02/xmldsig-pqc#ml-dsa-87", ML_DSA_87);
 
-        xmlAlgorithms.put("http://www.w3.org/2023/02/xmldsig-pqc-composites#mldsa44-ecdsa-p256-sha256", ML_DSA_44_ECDSA_P256_SHA256);
-        xmlAlgorithms.put("http://www.w3.org/2023/02/xmldsig-pqc-composites#mldsa87-ecdsa-p384-sha384", ML_DSA_87_ECDSA_P384_SHA384);
+        //prehash versions since we need a unified hash function for CMS
+        xmlAlgorithms.put("http://www.w3.org/2023/02/xmldsig-pqc-composites#hash-ml-dsa-44-ecdsa-p256-sha256", HASH_ML_DSA_44_ECDSA_P256_SHA256);
+        xmlAlgorithms.put("http://www.w3.org/2023/02/xmldsig-pqc-composites#hash-ml-dsa-65-ecdsa-p384-sha512", HASH_ML_DSA_65_ECDSA_P384_SHA512);
+        xmlAlgorithms.put("http://www.w3.org/2023/02/xmldsig-pqc-composites#hash-ml-dsa-87-ecdsa-p384-sha512", HASH_ML_DSA_87_ECDSA_P384_SHA512);
         // Following end.
         return xmlAlgorithms;
     }
@@ -586,8 +589,9 @@ public enum SignatureAlgorithm implements OidAndUriBasedEnum {
         oidAlgorithms.put(EncryptionAlgorithm.ML_DSA_65.getOid(), ML_DSA_65);
         oidAlgorithms.put(EncryptionAlgorithm.ML_DSA_87.getOid(), ML_DSA_87);
 
-        oidAlgorithms.put(EncryptionAlgorithm.ML_DSA_44_ECDSA_P256_SHA256.getOid(), ML_DSA_44_ECDSA_P256_SHA256);
-        oidAlgorithms.put(EncryptionAlgorithm.ML_DSA_87_ECDSA_P384_SHA384.getOid(), ML_DSA_87_ECDSA_P384_SHA384);
+        oidAlgorithms.put(EncryptionAlgorithm.HASH_ML_DSA_44_ECDSA_P256_SHA256.getOid(), HASH_ML_DSA_44_ECDSA_P256_SHA256);
+        oidAlgorithms.put(EncryptionAlgorithm.HASH_ML_DSA_65_ECDSA_P384_SHA512.getOid(), HASH_ML_DSA_65_ECDSA_P384_SHA512);
+        oidAlgorithms.put(EncryptionAlgorithm.HASH_ML_DSA_87_ECDSA_P384_SHA512.getOid(), HASH_ML_DSA_87_ECDSA_P384_SHA512);
 
         return oidAlgorithms;
     }
@@ -704,8 +708,9 @@ public enum SignatureAlgorithm implements OidAndUriBasedEnum {
         javaAlgorithms.put(ML_DSA_65.getName(), ML_DSA_65);
         javaAlgorithms.put(ML_DSA_87.getName(), ML_DSA_87);
 
-        javaAlgorithms.put(ML_DSA_44_ECDSA_P256_SHA256.getName(), ML_DSA_44_ECDSA_P256_SHA256);
-        javaAlgorithms.put(ML_DSA_87_ECDSA_P384_SHA384.getName(), ML_DSA_87_ECDSA_P384_SHA384);
+        javaAlgorithms.put(HASH_ML_DSA_44_ECDSA_P256_SHA256.getName(), HASH_ML_DSA_44_ECDSA_P256_SHA256);
+        javaAlgorithms.put(HASH_ML_DSA_65_ECDSA_P384_SHA512.getName(), HASH_ML_DSA_65_ECDSA_P384_SHA512);
+        javaAlgorithms.put(HASH_ML_DSA_87_ECDSA_P384_SHA512.getName(), HASH_ML_DSA_87_ECDSA_P384_SHA512);
 
         return javaAlgorithms;
     }
@@ -927,7 +932,7 @@ public enum SignatureAlgorithm implements OidAndUriBasedEnum {
     public static SignatureAlgorithm getAlgorithm(final EncryptionAlgorithm encryptionAlgorithm, final DigestAlgorithm digestAlgorithm) {
         // ignore digest for ML-DSA
         for (SignatureAlgorithm currentAlgo : values()) {
-            if (Objects.equals(currentAlgo.getEncryptionAlgorithm(), encryptionAlgorithm) && (Objects.equals(currentAlgo.getDigestAlgorithm(), digestAlgorithm) || (Objects.isNull(currentAlgo.getDigestAlgorithm()) && (EncryptionAlgorithm.ML_DSA_44.isEquivalent(encryptionAlgorithm) || EncryptionAlgorithm.ML_DSA_44_ECDSA_P256_SHA256.isEquivalent(encryptionAlgorithm))))) {
+            if (Objects.equals(currentAlgo.getEncryptionAlgorithm(), encryptionAlgorithm) && (Objects.equals(currentAlgo.getDigestAlgorithm(), digestAlgorithm) || (Objects.isNull(currentAlgo.getDigestAlgorithm()) && (EncryptionAlgorithm.ML_DSA_44.isEquivalent(encryptionAlgorithm) || EncryptionAlgorithm.HASH_ML_DSA_44_ECDSA_P256_SHA256.isEquivalent(encryptionAlgorithm))))) {
                 return currentAlgo;
             }
         }
@@ -1022,7 +1027,7 @@ public enum SignatureAlgorithm implements OidAndUriBasedEnum {
     public String getName() {
         StringBuilder stringBuilder = new StringBuilder();
         stringBuilder.append(encryptionAlgo.getName());
-        if (digestAlgo != null && !EncryptionAlgorithm.ML_DSA_44.isEquivalent(encryptionAlgo) && !EncryptionAlgorithm.ML_DSA_44_ECDSA_P256_SHA256.isEquivalent(encryptionAlgo)) {
+        if (digestAlgo != null && !EncryptionAlgorithm.ML_DSA_44.isEquivalent(encryptionAlgo) && !EncryptionAlgorithm.HASH_ML_DSA_44_ECDSA_P256_SHA256.isEquivalent(encryptionAlgo)) {
             stringBuilder.append(" with ");
             stringBuilder.append(digestAlgo.getName());
         }

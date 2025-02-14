@@ -411,14 +411,15 @@ public class PKIOCSPSource implements OCSPSource {
             currentEncryptionAlgorithm = ocspResponder.getEncryptionAlgorithm();
         }
 
+        //commented out now but may be useful for non-prehash composites?
         //ML-DSA fix because it does have an internal hash SHAKE (SHA-3) so we dont define it as such in SignatureAlgorithm
         //but here digestAlgorithm is also used to hash other stuff so it cannot be null globally
-        DigestAlgorithm signatureDigestAlgorithm = this.digestAlgorithm;
-        if (EncryptionAlgorithm.ML_DSA_44.isEquivalent(currentEncryptionAlgorithm) || EncryptionAlgorithm.ML_DSA_44_ECDSA_P256_SHA256.isEquivalent(currentEncryptionAlgorithm)) {
-            signatureDigestAlgorithm = null;
-        }
+//        DigestAlgorithm signatureDigestAlgorithm = this.digestAlgorithm;
+//        if (EncryptionAlgorithm.ML_DSA_44.isEquivalent(currentEncryptionAlgorithm) || EncryptionAlgorithm.ML_DSA_44_ECDSA_P256_SHA256.isEquivalent(currentEncryptionAlgorithm)) {
+//            signatureDigestAlgorithm = null;
+//        }
 
-        return SignatureAlgorithm.getAlgorithm(currentEncryptionAlgorithm, signatureDigestAlgorithm);
+        return SignatureAlgorithm.getAlgorithm(currentEncryptionAlgorithm, digestAlgorithm);
     }
 
     /**
@@ -465,7 +466,6 @@ public class PKIOCSPSource implements OCSPSource {
     protected OCSPReq buildOCSPRequest(CertificateToken certificateToken, CertificateToken issuerCertificateToken) {
         try {
             final OCSPReqBuilder ocspReqBuilder = new OCSPReqBuilder();
-
             final CertificateID certId = DSSRevocationUtils
                     .getOCSPCertificateID(certificateToken, issuerCertificateToken, digestAlgorithm);
             ocspReqBuilder.addRequest(certId);

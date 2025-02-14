@@ -25,7 +25,9 @@ import eu.europa.esig.dss.cades.signature.CAdESLevelBaselineB;
 import eu.europa.esig.dss.cades.signature.CMSSignerInfoGeneratorBuilder;
 import eu.europa.esig.dss.model.DSSDocument;
 import eu.europa.esig.dss.model.DSSMessageDigest;
+import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.cms.AttributeTable;
+import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
 import org.bouncycastle.cms.CMSAttributeTableGenerationException;
 import org.bouncycastle.cms.CMSAttributeTableGenerator;
 import org.bouncycastle.cms.SignerInfoGeneratorBuilder;
@@ -58,6 +60,10 @@ class PAdESSignerInfoGeneratorBuilder extends CMSSignerInfoGeneratorBuilder {
 		final DigestCalculatorProvider digestCalculatorProvider = new BcDigestCalculatorProvider();
 
 		SignerInfoGeneratorBuilder signerInfoGeneratorBuilder = new SignerInfoGeneratorBuilder(digestCalculatorProvider);
+//		if (parameters.getDigestAlgorithm() != null) {
+//			AlgorithmIdentifier digester = new AlgorithmIdentifier(new ASN1ObjectIdentifier(parameters.getDigestAlgorithm().getOid()));
+//			signerInfoGeneratorBuilder.setContentDigest(digester);
+//		}
 
 		signerInfoGeneratorBuilder = signerInfoGeneratorBuilder.setSignedAttributeGenerator(new CMSAttributeTableGenerator() {
 			@Override

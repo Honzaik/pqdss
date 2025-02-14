@@ -118,8 +118,9 @@ public class JAXBPKILoader {
 
             LOG.info("Init '{}' ...", certType.getSubject());
 
-            String subjectName = certType.getSubject();
-            EntityId entityId = new EntityId(subjectName, certType.getSerialNumber());
+            JAXBCertEntity issuer = getIssuer(entities, certType.getIssuer());
+            String issuerName = issuer != null ? issuer.getSubject() : certType.getSubject();
+            EntityId entityId = new EntityId(issuerName, certType.getSerialNumber());
             EntityId issuerId = new EntityId(certType.getIssuer());
 
             certEntity = entities.get(entityId);
@@ -189,7 +190,7 @@ public class JAXBPKILoader {
         if (entityId == null) {
             JAXBCertEntity issuer = findIssuer(certificate, certificateTypeList, entities, identifierMap);
             if (issuer != null) {
-                entityId = new EntityId(certificate.getSubject(), certificate.getSerialNumber());
+                entityId = new EntityId(issuer.getSubject(), certificate.getSerialNumber());
             }
         }
         identifierMap.put(certificate, entityId);
