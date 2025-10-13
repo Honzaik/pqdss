@@ -11,6 +11,70 @@
 |===
 |Version           |Release date             |Features
 
+|v6.3              |August 2025             a|Main new features / improvements :
+
+                                            * Introduced file cache revocation sources (experimental);
+                                            * Improved exception messages on invalid CMS augmentation;
+                                            * WebApp uses server-signing from now on (NexU deprecated);
+                                            * Added support of base64-encoded certificates on validation in dss-demonstrations;
+                                            * Added a button to download current validation policy in DSS WebApp;
+                                            * Dependencies upgrade (commons-lang3, json-sKema, verapdf, etc.).
+
+Bug fixes :
+
+                                            * Invalid `ocspArchiveCutOff` leads to a validation failure;
+                                            * Fixed digest computation for timestamp renewal for XMLERS embedded in XAdES;
+                                            * Failure to incorporate an ERS without reduced hashtree in CAdES;
+                                            * CMS Stream implementation produces LTA signature with duplicated digest algorithm;
+                                            * Cryptographic suite processing aligned with RFC 5698;
+                                            * Signature `extensionPeriodMin` is compromised by embedded revocation data;
+                                            * DSS returns `extensionPeriodMax` in the past for timestamps created with expired trust anchor;
+                                            * DSS Standalone fails to generate PDF reports with JDK 24.
+
+|v6.3.RC1          |June 2025               a|Main new features / improvements :
+
+                                            * Introduction of CMS handling using Streams (as alternative to CMS object in-memory processing, impacting CAdES, PAdES, ASiC with CAdES modules);
+                                            * Support of XAdES and CAdES embedded evidence records (ETSI TS 119 132-3 <<R01>> and ETSI TS 119 122-3 <<R02>>, respectively);
+                                            * Embedding of Evidence Records within existing XAdES or CAdES signatures;
+                                            * Embedding of Evidence Records within an ASiC container;
+                                            * Support of ETSI TS 119 322 (cf. <<R21>>) cryptographic suite schemas (XML and JSON);
+                                            * Lax validation of Trusted Lists against XSD (with customizable structure validation);
+                                            * Added signature expiration date within Simple Report;
+                                            * Improved ASiC conformance checks;
+                                            * Improved logs in case of missed OCSP AIA location URL;
+                                            * Improved configuration for LDAP GET requests;
+                                            * Dependencies update (xmlsec, BouncyCastle, PdfBox, VeraPDF, HttpClient5, etc.);
+                                            * Java 24 support.
+
+|v6.3.RC1          |June 2025               a|Bug fixes :
+
+                                            * PAdES augmentation fails for some documents with multiple signatures;
+                                            * Incorrect identification of PDF "undefined object modification" on signature verification;
+                                            * CRL is retrieved instead of OCSP when delegated OCSP responder requires revocation check;
+                                            * CMS signed-attributes shall not be returned when multiple values are defined;
+                                            * Issues with DiagnosticData Serialization/Deserialization;
+                                            * JPMS Module Issue with `dss-validation` module;
+                                            * `#equals` and `#hashCode` methods change when calling #getDigest on `DSSDocument` implementations;
+                                            * `RevocationIssuerNotExpired` policy constraint is not used during LTV process;
+                                            * `xVals` entries are not considered as candidates for a signing certificate for JAdES signature;
+                                            * Improve CryptoInformation element within ETSI VR for multiple signing-certificate references;
+                                            * Certificate Synchronization Issue with `TLValidationJob` when a custom synchronization strategy is used;
+                                            * DSS fails to read `FieldMDP` or `Lock` dictionary when defined as indirect reference;
+                                            * DSS fails to create a visual signature field for a PDF page with negative coordinates.
+
+|v6.2              |February 2025           a|Main new features / improvements :
+
+                                            * Dependencies upgrade (BouncyCastle, etc.);
+                                            * DSS Demonstrations : add property to skip ASN1ObjectIdentifier validation.
+
+Bug fixes :
+
+                                            * `dss-crl-parser-stream` invalidates some CRLs signed by RSASSA-PSS;
+                                            * XAdES validation fails in case of tempered `ds:KeyInfo` certificate;
+                                            * Misleading log warning on XAdES enveloping signature;
+                                            * `AlertOnNoRevocationAfterBestSignatureTime` returns NextUpdate before current time;
+                                            * Enforce TimeStamp level checks when no LTA material is present.
+
 |v6.2.RC1          |December 2024           a|Main new features / improvements :
 
                                             * Trusted List v6 support (ETSI TS 119 612 v2.3.1, cf. <<R11>>);
@@ -429,14 +493,14 @@ _pass:[*] October 2015: Implementing Acts Art. 27 & 37 (eSig formats)_
 
 To upgrade version of DSS, locate to the `pom.xml` file of your project, search for the properties and then change the dss version in the corresponding field(s).
 
-The example below shows how to switch to DSS version `6.2.RC1` using <<BomModule>>:
+The example below shows how to switch to DSS version `6.3` using <<BomModule>>:
 
 [source,xml]
 .pom.xml
 ----
 <properties>
     ...
-    <dss.version>6.2.RC1</dss.version>
+    <dss.version>6.3</dss.version>
     ...
 </properties>
 

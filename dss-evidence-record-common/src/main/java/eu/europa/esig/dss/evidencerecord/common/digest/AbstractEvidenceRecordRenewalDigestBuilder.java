@@ -63,7 +63,9 @@ public abstract class AbstractEvidenceRecordRenewalDigestBuilder implements Evid
      * @param evidenceRecord {@link DefaultEvidenceRecord}
      */
     protected AbstractEvidenceRecordRenewalDigestBuilder(final DefaultEvidenceRecord evidenceRecord) {
-        this(evidenceRecord, DigestAlgorithm.SHA256);
+        Objects.requireNonNull(evidenceRecord, "EvidenceRecord cannot be null!");
+        this.evidenceRecord = evidenceRecord;
+        this.digestAlgorithm = null;
     }
 
     /**
@@ -135,5 +137,14 @@ public abstract class AbstractEvidenceRecordRenewalDigestBuilder implements Evid
 
     @Override
     public abstract DSSMessageDigest buildTimeStampRenewalDigest();
+
+    /**
+     * Gets the defined DigestAlgorithm or default (DigestAlgorithm.SHA256) if not provided.
+     *
+     * @return {@link DigestAlgorithm}
+     */
+    protected DigestAlgorithm getDigestAlgorithmOrDefault() {
+        return digestAlgorithm != null ? digestAlgorithm : DigestAlgorithm.SHA256;
+    }
 
 }

@@ -26,7 +26,9 @@ import eu.europa.esig.dss.detailedreport.jaxb.XmlStatus;
 import eu.europa.esig.dss.detailedreport.jaxb.XmlValidationProcessBasicSignature;
 import eu.europa.esig.dss.detailedreport.jaxb.XmlValidationProcessLongTermData;
 import eu.europa.esig.dss.diagnostic.DiagnosticDataFacade;
+import eu.europa.esig.dss.diagnostic.jaxb.XmlCertificate;
 import eu.europa.esig.dss.diagnostic.jaxb.XmlDiagnosticData;
+import eu.europa.esig.dss.diagnostic.jaxb.XmlTimestamp;
 import eu.europa.esig.dss.enumerations.Indication;
 import eu.europa.esig.dss.enumerations.SubIndication;
 import eu.europa.esig.dss.i18n.MessageTag;
@@ -63,8 +65,8 @@ class ExpiredSignatureExecutorTest extends AbstractProcessExecutorTest {
         assertEquals(Indication.INDETERMINATE, simpleReport.getIndication(simpleReport.getFirstSignatureId()));
         assertEquals(SubIndication.OUT_OF_BOUNDS_NOT_REVOKED, simpleReport.getSubIndication(simpleReport.getFirstSignatureId()));
 
-        assertNull(simpleReport.getSignatureExtensionPeriodMin(simpleReport.getFirstSignatureId()));
-        assertNull(simpleReport.getSignatureExtensionPeriodMax(simpleReport.getFirstSignatureId()));
+        assertNull(simpleReport.getExtensionPeriodMin(simpleReport.getFirstSignatureId()));
+        assertNull(simpleReport.getExtensionPeriodMax(simpleReport.getFirstSignatureId()));
 
         DetailedReport detailedReport = reports.getDetailedReport();
         assertEquals(Indication.INDETERMINATE, detailedReport.getBasicValidationIndication(simpleReport.getFirstSignatureId()));
@@ -177,6 +179,67 @@ class ExpiredSignatureExecutorTest extends AbstractProcessExecutorTest {
         assertTrue(nextStepsExecuted);
 
         assertEquals(Indication.PASSED, detailedReport.getArchiveDataValidationIndication(detailedReport.getFirstSignatureId()));
+    }
+
+    @Test
+    void expiredSigWithTstTrustAnchorExpired() throws Exception {
+        XmlDiagnosticData diagnosticData = DiagnosticDataFacade.newFacade().unmarshall(new File("src/test/resources/diag-data/diag_data_trust_anchor_tst.xml"));
+        assertNotNull(diagnosticData);
+
+        DefaultSignatureProcessExecutor executor = new DefaultSignatureProcessExecutor();
+        executor.setDiagnosticData(diagnosticData);
+        executor.setValidationPolicy(loadDefaultPolicy());
+        executor.setCurrentTime(diagnosticData.getValidationDate());
+
+        Reports reports = executor.execute();
+
+        SimpleReport simpleReport = reports.getSimpleReport();
+        assertEquals(Indication.TOTAL_PASSED, simpleReport.getIndication(simpleReport.getFirstSignatureId()));
+
+        // expired tst
+        assertNull(simpleReport.getExtensionPeriodMax(simpleReport.getFirstSignatureId()));
+    }
+
+    @Test
+    void expiredSigWithTstTrustAnchorExpiredAtValidationTime() throws Exception {
+        XmlDiagnosticData diagnosticData = DiagnosticDataFacade.newFacade().unmarshall(new File("src/test/resources/diag-data/diag_data_trust_anchor_tst.xml"));
+        assertNotNull(diagnosticData);
+
+        XmlTimestamp xmlTimestamp = diagnosticData.getUsedTimestamps().get(0);
+        XmlCertificate timestampIssuer = xmlTimestamp.getSigningCertificate().getCertificate();
+
+        DefaultSignatureProcessExecutor executor = new DefaultSignatureProcessExecutor();
+        executor.setDiagnosticData(diagnosticData);
+        executor.setValidationPolicy(loadDefaultPolicy());
+        executor.setCurrentTime(timestampIssuer.getNotAfter());
+
+        Reports reports = executor.execute();
+
+        SimpleReport simpleReport = reports.getSimpleReport();
+        assertEquals(Indication.TOTAL_PASSED, simpleReport.getIndication(simpleReport.getFirstSignatureId()));
+
+        assertNull(simpleReport.getExtensionPeriodMax(simpleReport.getFirstSignatureId()));
+    }
+
+    @Test
+    void expiredSigWithTstTrustAnchorExpiredAfterValidationTime() throws Exception {
+        XmlDiagnosticData diagnosticData = DiagnosticDataFacade.newFacade().unmarshall(new File("src/test/resources/diag-data/diag_data_trust_anchor_tst.xml"));
+        assertNotNull(diagnosticData);
+
+        XmlTimestamp xmlTimestamp = diagnosticData.getUsedTimestamps().get(0);
+        XmlCertificate timestampIssuer = xmlTimestamp.getSigningCertificate().getCertificate();
+
+        DefaultSignatureProcessExecutor executor = new DefaultSignatureProcessExecutor();
+        executor.setDiagnosticData(diagnosticData);
+        executor.setValidationPolicy(loadDefaultPolicy());
+        executor.setCurrentTime(xmlTimestamp.getProductionTime());
+
+        Reports reports = executor.execute();
+
+        SimpleReport simpleReport = reports.getSimpleReport();
+        assertEquals(Indication.TOTAL_PASSED, simpleReport.getIndication(simpleReport.getFirstSignatureId()));
+
+        assertEquals(timestampIssuer.getNotAfter(), simpleReport.getExtensionPeriodMax(simpleReport.getFirstSignatureId()));
     }
 
 }

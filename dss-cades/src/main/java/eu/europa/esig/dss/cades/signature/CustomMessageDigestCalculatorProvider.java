@@ -22,8 +22,8 @@ package eu.europa.esig.dss.cades.signature;
 
 import eu.europa.esig.dss.enumerations.DigestAlgorithm;
 import eu.europa.esig.dss.model.DSSException;
+import eu.europa.esig.dss.spi.DSSASN1Utils;
 import eu.europa.esig.dss.utils.Utils;
-import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
 import org.bouncycastle.operator.DigestCalculator;
 import org.bouncycastle.operator.DigestCalculatorProvider;
@@ -86,7 +86,7 @@ public class CustomMessageDigestCalculatorProvider implements DigestCalculatorPr
 
 			@Override
 			public AlgorithmIdentifier getAlgorithmIdentifier() {
-				return new AlgorithmIdentifier(new ASN1ObjectIdentifier(messageDigestAlgo.getOid()));
+				return DSSASN1Utils.getAlgorithmIdentifier(messageDigestAlgo);
 			}
 
 		};

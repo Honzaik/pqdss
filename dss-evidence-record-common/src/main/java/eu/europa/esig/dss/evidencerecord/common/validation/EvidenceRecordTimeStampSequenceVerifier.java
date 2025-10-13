@@ -30,11 +30,12 @@ import eu.europa.esig.dss.model.ManifestFile;
 import eu.europa.esig.dss.model.ReferenceValidation;
 import eu.europa.esig.dss.spi.DSSMessageDigestCalculator;
 import eu.europa.esig.dss.spi.DSSUtils;
+import eu.europa.esig.dss.spi.validation.evidencerecord.ByteArrayComparator;
+import eu.europa.esig.dss.spi.validation.evidencerecord.EmbeddedEvidenceRecordHelper;
 import eu.europa.esig.dss.spi.x509.evidencerecord.EvidenceRecord;
 import eu.europa.esig.dss.spi.x509.evidencerecord.digest.DataObjectDigestBuilder;
 import eu.europa.esig.dss.spi.x509.tsp.TimestampToken;
 import eu.europa.esig.dss.utils.Utils;
-import eu.europa.esig.dss.spi.validation.evidencerecord.ByteArrayComparator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -108,10 +109,12 @@ public abstract class EvidenceRecordTimeStampSequenceVerifier {
                 DSSMessageDigest lastMessageDigest = DSSMessageDigest.createEmptyDigest();
 
                 List<? extends DigestValueGroup> hashTree = getHashTree(archiveTimeStamp.getHashTree(), detachedContents,
-                        manifestFile, archiveTimeStampChain, lastTimeStampHash, lastTimeStampSequenceHash);
+                        manifestFile, archiveTimeStampChain, archiveTimeStamp, lastTimeStampHash, lastTimeStampSequenceHash);
                 for (DigestValueGroup digestValueGroup : hashTree) {
+
                     // Validation of first HashTree/Sequence
                     if (lastMessageDigest.isEmpty()) {
+
                         // execute for all time-stamps in order to create reference validations
                         List<ReferenceValidation> archiveDataObjectValidations =
                                 validateArchiveDataObjects(digestValueGroup, archiveTimeStampChain, lastTimeStampSequenceHash, detachedContents, manifestFile);
@@ -130,22 +133,33 @@ public abstract class EvidenceRecordTimeStampSequenceVerifier {
                             archiveDataObjectValidations = validateManifestEntries(archiveDataObjectValidations, manifestFile, lastTimeStampSequenceHash.isEmpty());
                         }
 
-                        if (lastTimeStampHash.isEmpty() && lastTimeStampSequenceHash.isEmpty()) {
-                            referenceValidations.addAll(archiveDataObjectValidations);
+                        // if the first timestamp in a sequence
+                        if (lastTimeStampHash.isEmpty()) {
+                            // ensure the master signature is covered
+                            if (evidenceRecord.isEmbedded()) {
+                                archiveDataObjectValidations = validateMasterSignatureDigest(archiveDataObjectValidations, digestAlgorithm, lastTimeStampSequenceHash);
+                            }
+                            if (lastTimeStampSequenceHash.isEmpty()) {
+                                referenceValidations.addAll(archiveDataObjectValidations);
+                            }
                         }
 
                         // assert hashtree is valid, otherwise fail validation
                         if (!checkHashTreeValidity(archiveTimeStamp, archiveTimeStampChain)) {
                             archiveDataObjectValidations.forEach(r -> r.setIntact(false));
                         }
+
                     }
+
                     // Validation of each followingHashTree/Sequence
                     lastMessageDigest = computeDigestValueGroupHash(digestAlgorithm, digestValueGroup, lastMessageDigest);
+
                 }
 
                 // Validate time-stamp
                 TimestampToken timestampToken = archiveTimeStamp.getTimestampToken();
                 timestampToken.matchData(lastMessageDigest);
+                timestampValidations = ensureReferenceValidations(timestampValidations);
                 timestampToken.setReferenceValidations(timestampValidations);
 
                 if (archiveTimeStampsIt.hasNext()) {
@@ -168,13 +182,15 @@ public abstract class EvidenceRecordTimeStampSequenceVerifier {
      * @param detachedContents a list of {@link DSSDocument}s, provided to the validation as a detached content
      * @param manifestFile {@link ManifestFile} when present
      * @param archiveTimeStampChain {@link ArchiveTimeStampChainObject} archive time-stamp chain containing the time-stamp
+     * @param archiveTimeStamp {@link ArchiveTimeStampObject} current archive time-stamp
      * @param lastTimeStampHash {@link DSSMessageDigest} digest of the previous archive-time-stamp, when applicable
      * @param lastTimeStampSequenceHash {@link DSSMessageDigest} digest of the previous archive-time-stamp-sequence, when applicable
      * @return a list of {@link DigestValueGroup}, representing a HashTree to be used for an archive-time-stamp validation
      */
     protected List<? extends DigestValueGroup> getHashTree(
             List<? extends DigestValueGroup> originalHashTree, List<DSSDocument> detachedContents, ManifestFile manifestFile,
-            ArchiveTimeStampChainObject archiveTimeStampChain, DSSMessageDigest lastTimeStampHash, DSSMessageDigest lastTimeStampSequenceHash) {
+            ArchiveTimeStampChainObject archiveTimeStampChain, ArchiveTimeStampObject archiveTimeStamp,
+            DSSMessageDigest lastTimeStampHash, DSSMessageDigest lastTimeStampSequenceHash) {
         List<? extends DigestValueGroup> hashTree;
         if (Utils.isCollectionNotEmpty(originalHashTree)) {
             hashTree = new ArrayList<>(originalHashTree);
@@ -212,6 +228,17 @@ public abstract class EvidenceRecordTimeStampSequenceVerifier {
                 } else {
                     LOG.warn("Unable to determine original data object for omitted hashTree. " +
                             "{} manifest entries provided instead of one.", Utils.collectionSize(manifestFile.getEntries()));
+                    digestValues.add(DSSUtils.EMPTY_BYTE_ARRAY);
+                }
+
+            } else if (evidenceRecord.isEmbedded()) {
+                EmbeddedEvidenceRecordHelper embeddedEvidenceRecordHelper = evidenceRecord.getEmbeddedEvidenceRecordHelper();
+                if (embeddedEvidenceRecordHelper.isAbsentHashtreeSupported()) {
+                    LOG.info("Embedded evidence record with omitted reduced hashtree found. Use timestamp's message-imprint as a virtual reduced hashtree.");
+                    digestValues.add(archiveTimeStamp.getTimestampToken().getMessageImprint().getValue());
+                } else {
+                    LOG.warn("Presence of the reduced hashtree is required for embedded evidence records by the current implementation! " +
+                            "Unable to determine the original data.");
                     digestValues.add(DSSUtils.EMPTY_BYTE_ARRAY);
                 }
 
@@ -277,7 +304,7 @@ public abstract class EvidenceRecordTimeStampSequenceVerifier {
 
     /**
      * This method is used to verify presence of ArchiveTimeStamp digests within the reference validation list.
-     * If entry is not present, created one, when applicable
+     * If entry is not present, creates one, when applicable
      *
      * @param referenceValidations a list of {@link ReferenceValidation}s
      * @param lastTimeStampHash {@link DSSMessageDigest}
@@ -290,7 +317,7 @@ public abstract class EvidenceRecordTimeStampSequenceVerifier {
 
     /**
      * This method is used to verify presence of ArchiveTimeStampSequence digests within the reference validation list.
-     * If entry is not present, created one, when applicable
+     * If entry is not present, creates one, when applicable
      *
      * @param referenceValidations a list of {@link ReferenceValidation}s
      * @param lastTimeStampSequenceHashes {@link DSSMessageDigest}
@@ -300,25 +327,62 @@ public abstract class EvidenceRecordTimeStampSequenceVerifier {
                                                                              DSSMessageDigest lastTimeStampSequenceHashes) {
         return validateAdditionalDigest(referenceValidations, lastTimeStampSequenceHashes, DigestMatcherType.EVIDENCE_RECORD_ARCHIVE_TIME_STAMP_SEQUENCE);
     }
-    
-    private List<ReferenceValidation> validateAdditionalDigest(List<ReferenceValidation> referenceValidations,
-                                                               DSSMessageDigest messageDigest, DigestMatcherType type) {
-        List<ReferenceValidation> invalidReferences = referenceValidations.stream().filter(r -> !r.isIntact()).collect(Collectors.toList());
+
+    /**
+     * This method is used to verify presence of master signature digests within the reference validation list.
+     * If entry is not present, creates one, when applicable
+     *
+     * @param referenceValidations a list of {@link ReferenceValidation}s
+     * @param digestAlgorithm {@link DigestAlgorithm} used by the hashtree
+     * @param lastTimeStampSequenceHash {@link DSSMessageDigest} if present
+     * @return an updated list of {@link ReferenceValidation}s
+     */
+    protected List<ReferenceValidation> validateMasterSignatureDigest(List<ReferenceValidation> referenceValidations,
+                                                                      DigestAlgorithm digestAlgorithm, DSSMessageDigest lastTimeStampSequenceHash) {
+        EmbeddedEvidenceRecordHelper embeddedEvidenceRecordHelper = evidenceRecord.getEmbeddedEvidenceRecordHelper();
+        Digest masterSignatureDigest = embeddedEvidenceRecordHelper.getMasterSignatureDigest(digestAlgorithm);
+        return validateAdditionalDigest(referenceValidations, masterSignatureDigest, DigestMatcherType.EVIDENCE_RECORD_MASTER_SIGNATURE);
+    }
+
+    /**
+     * This method validates for a presence of a {@code digest} within the list of {@code referenceValidations},
+     * to identify a presence of a particular {@code DigestMatcherType}.
+     * If a digest value is found, the method assigns the given {@code DigestMatcherType} to the matching reference.
+     * Otherwise, it creates an empty reference, if applicable.
+     *
+     * @param referenceValidations a list of {@link ReferenceValidation}s to evaluate
+     * @param digest {@link Digest} target digest to be found
+     * @param type {@link DigestMatcherType}
+     * @return a list of processed {@link ReferenceValidation}s
+     */
+    protected List<ReferenceValidation> validateAdditionalDigest(List<ReferenceValidation> referenceValidations,
+                                                                 Digest digest, DigestMatcherType type) {
+        List<ReferenceValidation> invalidReferences = getInvalidReferences(referenceValidations);
         for (ReferenceValidation reference : invalidReferences) {
-            if (reference.getDigest() != null && Arrays.equals(messageDigest.getValue(), reference.getDigest().getValue())) {
+            if (digestMatch(digest, reference)) {
                 reference.setType(type);
                 reference.setFound(true);
                 reference.setIntact(true);
                 return referenceValidations;
             }
         }
-        // If one invalid reference and hash does not match -> change type
-        if (Utils.collectionSize(invalidReferences) == 1) {
-            ReferenceValidation reference = invalidReferences.iterator().next();
-            reference.setType(type);
-            reference.setFound(!messageDigest.isEmpty());
-        }
+        referenceValidations = ensureReferenceValidationOfType(referenceValidations, type, !digest.isEmpty());
         return referenceValidations;
+    }
+
+    private List<ReferenceValidation> getInvalidReferences(List<ReferenceValidation> referenceValidations) {
+        return referenceValidations.stream().filter(r -> !r.isIntact()).collect(Collectors.toList());
+    }
+
+    /**
+     * This method verifies whether the {@code digest} match to the value delivered from the {@code reference}
+     *
+     * @param digest {@link Digest}
+     * @param reference {@link ReferenceValidation}
+     * @return TRUE if the digest values match, FALSE otherwise
+     */
+    protected boolean digestMatch(Digest digest, ReferenceValidation reference) {
+        return reference.getDigest() != null && Arrays.equals(digest.getValue(), reference.getDigest().getValue());
     }
 
     private List<ReferenceValidation> validateManifestEntries(List<ReferenceValidation> referenceValidations, ManifestFile manifestFile, boolean firstTimeStamp) {
@@ -396,7 +460,6 @@ public abstract class EvidenceRecordTimeStampSequenceVerifier {
                                                                    List<DSSDocument> detachedContents,
                                                                    ManifestFile manifestFile) {
         final List<ReferenceValidation> result = new ArrayList<>();
-        final List<String> foundDocuments = new ArrayList<>();
 
         DigestAlgorithm digestAlgorithm = archiveTimeStampChain.getDigestAlgorithm();
 
@@ -418,11 +481,9 @@ public abstract class EvidenceRecordTimeStampSequenceVerifier {
                     referenceValidation.setIntact(matchingManifestEntry.isIntact() && matchingDocument != null);
                     referenceValidation.setUri(matchingManifestEntry.getUri());
                     referenceValidation.setDocumentName(matchingManifestEntry.getDocumentName());
-                    foundDocuments.add(matchingManifestEntry.getUri());
 
                 } else if (matchingDocument != null) {
                     referenceValidation.setDocumentName(matchingDocument.getName());
-                    foundDocuments.add(matchingDocument.getName());
 
                 } else {
                     referenceValidation.setType(DigestMatcherType.EVIDENCE_RECORD_ORPHAN_REFERENCE);
@@ -434,14 +495,12 @@ public abstract class EvidenceRecordTimeStampSequenceVerifier {
                 referenceValidation.setFound(true);
                 referenceValidation.setIntact(true);
                 referenceValidation.setDocumentName(matchingDocument.getName());
-                foundDocuments.add(matchingDocument.getName());
 
-            } else if (Utils.collectionSize(digestValues) == 1 && Utils.collectionSize(detachedContents) == 1) {
+            } else if (Utils.collectionSize(digestValues) == 1 && Utils.collectionSize(detachedContents) == 1 && !evidenceRecord.isEmbedded()) {
                 // if one document is expected and provided -> assume it as a signed data
                 referenceValidation.setFound(true);
                 referenceValidation.setIntact(false);
                 referenceValidation.setDocumentName(detachedContents.get(0).getName());
-                foundDocuments.add(detachedContents.get(0).getName());
 
             } else {
                 referenceValidation.setType(DigestMatcherType.EVIDENCE_RECORD_ORPHAN_REFERENCE);
@@ -533,6 +592,70 @@ public abstract class EvidenceRecordTimeStampSequenceVerifier {
      * @return {@link DSSMessageDigest}
      */
     protected abstract DSSMessageDigest computeTimeStampSequenceHash(ArchiveTimeStampChainObject archiveTimeStampChain);
+
+    /**
+     * Checks the list of {@code timestampValidations} for completeness. Adds missing references, if needed
+     *
+     * @param referenceValidations a list of {@link ReferenceValidation}s
+     * @return a list of {@link ReferenceValidation}s
+     */
+    protected List<ReferenceValidation> ensureReferenceValidations(List<ReferenceValidation> referenceValidations) {
+        List<ReferenceValidation> orphanRefs = referenceValidations.stream()
+                .filter(r -> DigestMatcherType.EVIDENCE_RECORD_ORPHAN_REFERENCE == r.getType()).collect(Collectors.toList());
+        List<ReferenceValidation> emptyRefs = referenceValidations.stream()
+                .filter(r -> r.getDigest() == null).collect(Collectors.toList());
+        if (Utils.collectionSize(orphanRefs) == 1 && Utils.collectionSize(emptyRefs) == 1) {
+            ReferenceValidation orphanReference = orphanRefs.iterator().next();
+            ReferenceValidation emptyReference = emptyRefs.iterator().next();
+            orphanReference.setType(emptyReference.getType());
+            orphanReference.setFound(emptyReference.isFound());
+            referenceValidations.remove(emptyReference);
+        }
+        return referenceValidations;
+    }
+
+    /**
+     * This method ensures the list of {@code referenceValidations} contains a {@code ReferenceValidation}
+     * of type {@code digestMatcherType}
+     *
+     * @param referenceValidations a list of {@link ReferenceValidation}s
+     * @param digestMatcherType {@link DigestMatcherType}
+     * @param digestFound whether digest has been found
+     * @return a list of {@link ReferenceValidation}s
+     */
+    protected List<ReferenceValidation> ensureReferenceValidationOfType(List<ReferenceValidation> referenceValidations,
+                                                                        DigestMatcherType digestMatcherType, boolean digestFound) {
+        if (!containsReferenceValidationOfType(referenceValidations, digestMatcherType)) {
+            List<ReferenceValidation> invalidReferences = getInvalidReferences(referenceValidations);
+            if (Utils.collectionSize(invalidReferences) == 1) {
+                // change type
+                ReferenceValidation referenceValidation = invalidReferences.iterator().next();
+                referenceValidation.setType(digestMatcherType);
+                referenceValidation.setFound(digestFound);
+            } else {
+                referenceValidations.add(createEmptyReference(digestMatcherType, digestFound));
+            }
+        }
+        return referenceValidations;
+    }
+
+    private boolean containsReferenceValidationOfType(List<ReferenceValidation> referenceValidations, DigestMatcherType digestMatcherType) {
+        return referenceValidations.stream().anyMatch(r -> digestMatcherType.equals(r.getType()));
+    }
+
+    /**
+     * This method creates an empty reference
+     *
+     * @param digestMatcherType {@link DigestMatcherType} to use
+     * @param digestFound whether digest has been found
+     * @return {@link ReferenceValidation}
+     */
+    protected ReferenceValidation createEmptyReference(DigestMatcherType digestMatcherType, boolean digestFound) {
+        ReferenceValidation referenceValidation = new ReferenceValidation();
+        referenceValidation.setType(digestMatcherType);
+        referenceValidation.setFound(digestFound);
+        return referenceValidation;
+    }
     
     /**
      * Computes a hash value for a group of hashes
@@ -575,7 +698,7 @@ public abstract class EvidenceRecordTimeStampSequenceVerifier {
             digestCalculator.update(hashValue);
         }
         // 4. Calculate hash value
-        return digestCalculator.getMessageDigest();
+        return digestCalculator.getMessageDigest(digestAlgorithm);
     }
 
 }

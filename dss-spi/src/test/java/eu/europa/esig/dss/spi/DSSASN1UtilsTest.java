@@ -27,14 +27,17 @@ import org.bouncycastle.asn1.ASN1Encodable;
 import org.bouncycastle.asn1.ASN1EncodableVector;
 import org.bouncycastle.asn1.ASN1Encoding;
 import org.bouncycastle.asn1.ASN1InputStream;
+import org.bouncycastle.asn1.ASN1Integer;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.ASN1Primitive;
+import org.bouncycastle.asn1.DERNull;
 import org.bouncycastle.asn1.DERPrintableString;
 import org.bouncycastle.asn1.DERSequence;
 import org.bouncycastle.asn1.DERSet;
 import org.bouncycastle.asn1.DERUTCTime;
 import org.bouncycastle.asn1.DERUTF8String;
 import org.bouncycastle.asn1.DERUniversalString;
+import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
 import org.bouncycastle.asn1.x509.IssuerSerial;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cms.CMSException;
@@ -55,6 +58,7 @@ import java.util.Date;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -130,7 +134,89 @@ class DSSASN1UtilsTest {
 
 	@Test
 	void getAlgorithmIdentifier() {
-		assertNotNull(DSSASN1Utils.getAlgorithmIdentifier(DigestAlgorithm.SHA256));
+		// NOTE: The test cases are aligned with BC definition.
+		// See {@code <a href="https://github.com/bcgit/bc-java/commit/131c39e5d86da9b4e23d48588ce095c13626a129">commit</a>}
+
+		// NULL parameter is added in case of SHA-1 digest algorithm to ensure interoperability with
+		// older implementations, even though RFC 3370 recommends omitting the NULL
+		AlgorithmIdentifier algorithmIdentifier = DSSASN1Utils.getAlgorithmIdentifier(DigestAlgorithm.SHA1);
+		assertNotNull(algorithmIdentifier);
+		assertNotNull(algorithmIdentifier.getAlgorithm());
+		assertNotNull(algorithmIdentifier.getParameters());
+		assertInstanceOf(DERNull.class, algorithmIdentifier.getParameters());
+
+		algorithmIdentifier = DSSASN1Utils.getAlgorithmIdentifier(DigestAlgorithm.SHA224);
+		assertNotNull(algorithmIdentifier);
+		assertNotNull(algorithmIdentifier.getAlgorithm());
+		assertNull(algorithmIdentifier.getParameters());
+
+		algorithmIdentifier = DSSASN1Utils.getAlgorithmIdentifier(DigestAlgorithm.SHA256);
+		assertNotNull(algorithmIdentifier);
+		assertNotNull(algorithmIdentifier.getAlgorithm());
+		assertNull(algorithmIdentifier.getParameters());
+
+		algorithmIdentifier = DSSASN1Utils.getAlgorithmIdentifier(DigestAlgorithm.SHA384);
+		assertNotNull(algorithmIdentifier);
+		assertNotNull(algorithmIdentifier.getAlgorithm());
+		assertNull(algorithmIdentifier.getParameters());
+
+		algorithmIdentifier = DSSASN1Utils.getAlgorithmIdentifier(DigestAlgorithm.SHA512);
+		assertNotNull(algorithmIdentifier);
+		assertNotNull(algorithmIdentifier.getAlgorithm());
+		assertNull(algorithmIdentifier.getParameters());
+
+		// MD2 and MD5 shall include the NULL parameter, as defined in RFC 1319 and RFC 1321/RFC 3370
+		algorithmIdentifier = DSSASN1Utils.getAlgorithmIdentifier(DigestAlgorithm.MD2);
+		assertNotNull(algorithmIdentifier);
+		assertNotNull(algorithmIdentifier.getAlgorithm());
+		assertNotNull(algorithmIdentifier.getParameters());
+		assertInstanceOf(DERNull.class, algorithmIdentifier.getParameters());
+
+		algorithmIdentifier = DSSASN1Utils.getAlgorithmIdentifier(DigestAlgorithm.MD5);
+		assertNotNull(algorithmIdentifier);
+		assertNotNull(algorithmIdentifier.getAlgorithm());
+		assertNotNull(algorithmIdentifier.getParameters());
+		assertInstanceOf(DERNull.class, algorithmIdentifier.getParameters());
+
+		// No information is present for definition of RIPEMD. BC includes the NULL parameter, so we test it as well
+		algorithmIdentifier = DSSASN1Utils.getAlgorithmIdentifier(DigestAlgorithm.RIPEMD160);
+		assertNotNull(algorithmIdentifier);
+		assertNotNull(algorithmIdentifier.getAlgorithm());
+		assertNotNull(algorithmIdentifier.getParameters());
+		assertInstanceOf(DERNull.class, algorithmIdentifier.getParameters());
+
+		algorithmIdentifier = DSSASN1Utils.getAlgorithmIdentifier(DigestAlgorithm.SHA3_256);
+		assertNotNull(algorithmIdentifier);
+		assertNotNull(algorithmIdentifier.getAlgorithm());
+		assertNull(algorithmIdentifier.getParameters());
+
+		algorithmIdentifier = DSSASN1Utils.getAlgorithmIdentifier(DigestAlgorithm.SHA3_384);
+		assertNotNull(algorithmIdentifier);
+		assertNotNull(algorithmIdentifier.getAlgorithm());
+		assertNull(algorithmIdentifier.getParameters());
+
+		algorithmIdentifier = DSSASN1Utils.getAlgorithmIdentifier(DigestAlgorithm.SHA3_512);
+		assertNotNull(algorithmIdentifier);
+		assertNotNull(algorithmIdentifier.getAlgorithm());
+		assertNull(algorithmIdentifier.getParameters());
+
+		algorithmIdentifier = DSSASN1Utils.getAlgorithmIdentifier(DigestAlgorithm.SHAKE128);
+		assertNotNull(algorithmIdentifier);
+		assertNotNull(algorithmIdentifier.getAlgorithm());
+		assertNull(algorithmIdentifier.getParameters());
+
+		algorithmIdentifier = DSSASN1Utils.getAlgorithmIdentifier(DigestAlgorithm.SHAKE256);
+		assertNotNull(algorithmIdentifier);
+		assertNotNull(algorithmIdentifier.getAlgorithm());
+		assertNull(algorithmIdentifier.getParameters());
+
+		// Special case for ED448 algorithm
+		algorithmIdentifier = DSSASN1Utils.getAlgorithmIdentifier(DigestAlgorithm.SHAKE256_512);
+		assertNotNull(algorithmIdentifier);
+		assertNotNull(algorithmIdentifier.getAlgorithm());
+		assertNotNull(algorithmIdentifier.getParameters());
+		ASN1Integer asn1Integer = assertInstanceOf(ASN1Integer.class, algorithmIdentifier.getParameters());
+		assertEquals(512, asn1Integer.getValue().intValue());
 	}
 	
 	@Test

@@ -108,6 +108,7 @@ public class ASN1EvidenceRecordRenewalDigestBuilder extends AbstractEvidenceReco
     public List<Digest> buildHashTreeRenewalDigestGroup() {
         final List<Digest> result = new ArrayList<>();
         if (Utils.isCollectionNotEmpty(detachedContent)) {
+            DigestAlgorithm digestAlgorithm = getDigestAlgorithmOrDefault();
             ArchiveTimeStampChainObject lastArchiveTimeStampChainObject = getLastArchiveTimeStampChainObject();
             Digest lastTimeStampSequenceHash = getArchiveTimeStampSequenceDigestHelper()
                     .buildArchiveTimeStampSequenceDigest(digestAlgorithm, lastArchiveTimeStampChainObject.getOrder() + 1);

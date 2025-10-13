@@ -20,28 +20,70 @@
  */
 package eu.europa.esig.dss.cades.validation.revocation;
 
+import eu.europa.esig.dss.alert.SilentOnStatusAlert;
+import eu.europa.esig.dss.cades.CAdESSignatureParameters;
+import eu.europa.esig.dss.cades.signature.CAdESService;
 import eu.europa.esig.dss.cades.validation.AbstractCAdESTestValidation;
+import eu.europa.esig.dss.cades.validation.CAdESSignature;
+import eu.europa.esig.dss.cms.CMS;
 import eu.europa.esig.dss.diagnostic.DiagnosticData;
 import eu.europa.esig.dss.diagnostic.RevocationWrapper;
 import eu.europa.esig.dss.diagnostic.SignatureWrapper;
+import eu.europa.esig.dss.diagnostic.jaxb.XmlSignatureDigestReference;
 import eu.europa.esig.dss.enumerations.RevocationOrigin;
 import eu.europa.esig.dss.enumerations.RevocationType;
+import eu.europa.esig.dss.enumerations.SignatureLevel;
 import eu.europa.esig.dss.model.DSSDocument;
-import eu.europa.esig.dss.model.FileDocument;
+import eu.europa.esig.dss.model.DSSException;
+import eu.europa.esig.dss.model.InMemoryDocument;
+import eu.europa.esig.dss.spi.DSSASN1Utils;
+import eu.europa.esig.dss.spi.DSSUtils;
 import eu.europa.esig.dss.spi.signature.AdvancedSignature;
+import eu.europa.esig.dss.spi.validation.CertificateVerifier;
+import eu.europa.esig.dss.utils.Utils;
+import eu.europa.esig.dss.validation.SignedDocumentValidator;
+import eu.europa.esig.dss.validation.reports.Reports;
+import eu.europa.esig.validationreport.enums.ObjectType;
+import eu.europa.esig.validationreport.jaxb.POEProvisioningType;
+import eu.europa.esig.validationreport.jaxb.SignatureReferenceType;
+import eu.europa.esig.validationreport.jaxb.ValidationObjectType;
+import eu.europa.esig.validationreport.jaxb.ValidationReportType;
+import org.bouncycastle.asn1.cms.SignerInfo;
+import org.bouncycastle.cms.SignerInformation;
+import org.bouncycastle.cms.SignerInformationStore;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class CAdESRevocationSourceHUTest extends AbstractCAdESTestValidation {
 
 	@Override
 	protected DSSDocument getSignedDocument() {
-		return new FileDocument("src/test/resources/validation/Signature-C-HU_POL-3.p7m");
+		return new InMemoryDocument(CAdESRevocationSourceHUTest.class.getResourceAsStream("/validation/Signature-C-HU_POL-3.p7m"));
+	}
+
+	@Override
+	protected void checkBLevelValid(DiagnosticData diagnosticData) {
+		super.checkBLevelValid(diagnosticData);
+
+		SignatureWrapper signature = diagnosticData.getSignatureById(diagnosticData.getFirstSignatureId());
+		assertNotNull(signature);
+		assertNotNull(signature.getDigestMatchers());
+		assertEquals(1, signature.getDigestMatchers().size());
+		assertNotNull(signature.getSignatureValue());
+	}
+
+	@Override
+	protected void checkSignatureLevel(DiagnosticData diagnosticData) {
+		assertTrue(diagnosticData.isTLevelTechnicallyValid(diagnosticData.getFirstSignatureId()));
+		assertTrue(diagnosticData.isALevelTechnicallyValid(diagnosticData.getFirstSignatureId()));
 	}
 	
 	@Override
@@ -71,9 +113,73 @@ class CAdESRevocationSourceHUTest extends AbstractCAdESTestValidation {
 	}
 	
 	@Override
-	protected void checkSignatureLevel(DiagnosticData diagnosticData) {
-		assertTrue(diagnosticData.isTLevelTechnicallyValid(diagnosticData.getFirstSignatureId()));
-		assertTrue(diagnosticData.isALevelTechnicallyValid(diagnosticData.getFirstSignatureId()));
+	protected void verifyOriginalDocuments(SignedDocumentValidator validator, DiagnosticData diagnosticData) {
+		super.verifyOriginalDocuments(validator, diagnosticData);
+
+		SignatureWrapper signature = diagnosticData.getSignatureById(diagnosticData.getFirstSignatureId());
+		XmlSignatureDigestReference signatureDigestReference = signature.getSignatureDigestReference();
+		assertNotNull(signatureDigestReference);
+
+		List<AdvancedSignature> signatures = validator.getSignatures();
+		assertEquals(1, signatures.size());
+		CAdESSignature cadesSignature = (CAdESSignature) signatures.get(0);
+		CMS cms = cadesSignature.getCMS();
+		SignerInformationStore signerInfos = cms.getSignerInfos();
+		SignerInformation signerInformation = signerInfos.iterator().next();
+		SignerInfo signerInfo = signerInformation.toASN1Structure();
+		byte[] derEncoded = DSSASN1Utils.getDEREncoded(signerInfo);
+		byte[] digest = DSSUtils.digest(signatureDigestReference.getDigestMethod(), derEncoded);
+
+		String signatureReferenceDigestValue = Utils.toBase64(signatureDigestReference.getDigestValue());
+		String signatureElementDigestValue = Utils.toBase64(digest);
+		assertEquals(signatureReferenceDigestValue, signatureElementDigestValue);
+	}
+
+	@Override
+	protected void verifyReportsData(Reports reports) {
+		super.verifyReportsData(reports);
+
+		DiagnosticData diagnosticData = reports.getDiagnosticData();
+		SignatureWrapper signature = diagnosticData.getSignatureById(diagnosticData.getFirstSignatureId());
+		XmlSignatureDigestReference signatureDigestReference = signature.getSignatureDigestReference();
+		String signatureReferenceDigestValue = Utils.toBase64(signatureDigestReference.getDigestValue());
+
+		ValidationReportType etsiValidationReport = reports.getEtsiValidationReportJaxb();
+		List<ValidationObjectType> validationObjects = etsiValidationReport.getSignatureValidationObjects().getValidationObject();
+		int timestampCounter = 0;
+		for (ValidationObjectType validationObject : validationObjects) {
+			if (ObjectType.TIMESTAMP.equals(validationObject.getObjectType())) {
+				POEProvisioningType poeProvisioning = validationObject.getPOEProvisioning();
+				List<SignatureReferenceType> signatureReferences = poeProvisioning.getSignatureReference();
+				assertEquals(1, signatureReferences.size());
+				SignatureReferenceType signatureReferenceType = signatureReferences.get(0);
+				assertNotNull(signatureReferenceType.getDigestMethod());
+				assertNotNull(signatureReferenceType.getDigestValue());
+				assertNull(signatureReferenceType.getCanonicalizationMethod());
+				assertNull(signatureReferenceType.getXAdESSignaturePtr());
+				assertNull(signatureReferenceType.getPAdESFieldName());
+				assertEquals(signatureReferenceDigestValue, Utils.toBase64(signatureReferenceType.getDigestValue()));
+				timestampCounter++;
+			}
+		}
+		assertEquals(2, timestampCounter);
+	}
+
+	// See DSS-3650
+	@Test
+	void extendSignatureTest() {
+		CertificateVerifier certificateVerifier = getOfflineCertificateVerifier();
+		certificateVerifier.setAlertOnMissingRevocationData(new SilentOnStatusAlert());
+		certificateVerifier.setAlertOnExpiredCertificate(new SilentOnStatusAlert());
+
+		CAdESService cadesService = new CAdESService(certificateVerifier);
+		cadesService.setTspSource(getGoodTsa());
+
+		CAdESSignatureParameters extensionParameters = new CAdESSignatureParameters();
+		extensionParameters.setSignatureLevel(SignatureLevel.CAdES_BASELINE_LTA);
+
+		Exception exception = assertThrows(DSSException.class, () -> cadesService.extendDocument(getSignedDocument(), extensionParameters));
+		assertTrue(exception.getMessage().contains("Unable to replace validation content of CMS SignedData"));
 	}
 
 }

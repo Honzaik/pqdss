@@ -21,7 +21,7 @@
 package eu.europa.esig.dss.cades.signature;
 
 import eu.europa.esig.dss.cades.CAdESSignatureParameters;
-import eu.europa.esig.dss.cades.CMSUtils;
+import eu.europa.esig.dss.cades.CAdESUtils;
 import eu.europa.esig.dss.diagnostic.DiagnosticData;
 import eu.europa.esig.dss.diagnostic.SignatureWrapper;
 import eu.europa.esig.dss.diagnostic.TimestampWrapper;
@@ -47,10 +47,12 @@ import eu.europa.esig.validationreport.jaxb.ValidationReportType;
 import org.bouncycastle.asn1.ASN1Encodable;
 import org.bouncycastle.asn1.ASN1EncodableVector;
 import org.bouncycastle.asn1.ASN1InputStream;
+import org.bouncycastle.asn1.ASN1Integer;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.ASN1Primitive;
 import org.bouncycastle.asn1.ASN1Sequence;
 import org.bouncycastle.asn1.ASN1Set;
+import org.bouncycastle.asn1.DERNull;
 import org.bouncycastle.asn1.DEROctetString;
 import org.bouncycastle.asn1.DERTaggedObject;
 import org.bouncycastle.asn1.cms.Attribute;
@@ -64,15 +66,19 @@ import org.bouncycastle.cms.CMSSignedData;
 import org.bouncycastle.cms.SignerInformation;
 import org.bouncycastle.tsp.TimeStampToken;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static eu.europa.esig.dss.spi.OID.id_aa_ATSHashIndexV3;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -84,6 +90,7 @@ public abstract class AbstractCAdESTestSignature extends AbstractPkiFactoryTestD
 	@Override
 	protected void onDocumentSigned(byte[] byteArray) {
 		super.onDocumentSigned(byteArray);
+		checkDigestAlgorithms(byteArray);
 		checkSignedAttributesOrder(byteArray);
 		checkSignaturePackaging(byteArray);
 		checkArchiveTimeStampV3(byteArray);
@@ -92,6 +99,58 @@ public abstract class AbstractCAdESTestSignature extends AbstractPkiFactoryTestD
 	@Override
 	protected List<DSSDocument> getOriginalDocuments() {
 		return Collections.singletonList(getDocumentToSign());
+	}
+
+	protected void checkDigestAlgorithms(byte[] encoded) {
+		try (ASN1InputStream asn1sInput = new ASN1InputStream(encoded)) {
+			ASN1Sequence asn1Seq = (ASN1Sequence) asn1sInput.readObject();
+
+			SignedData signedData = SignedData.getInstance(DERTaggedObject.getInstance(asn1Seq.getObjectAt(1)).getBaseObject());
+
+			final Set<DigestAlgorithm> result = new HashSet<>();
+
+			ASN1Set digestAlgorithms = signedData.getDigestAlgorithms();
+			assertNotNull(digestAlgorithms);
+			assertTrue(digestAlgorithms.size() > 0);
+
+			for (int i = 0; i < digestAlgorithms.size(); i++) {
+				ASN1Encodable digestAlgoEncodable = digestAlgorithms.getObjectAt(i);
+				ASN1Sequence asn1Sequence = assertInstanceOf(ASN1Sequence.class, digestAlgoEncodable);
+
+				ASN1ObjectIdentifier objectIdentifier = ASN1ObjectIdentifier.getInstance(asn1Sequence.getObjectAt(0));
+				assertNotNull(objectIdentifier);
+				assertNotNull(objectIdentifier.getId());
+
+				DigestAlgorithm digestAlgorithm = DigestAlgorithm.forOID(objectIdentifier.getId());
+				assertNotNull(digestAlgorithm);
+
+				assertEquals(digestAlgosWithParameter().contains(digestAlgorithm), asn1Sequence.size() != 1);
+				if (DigestAlgorithm.SHAKE256_512 == digestAlgorithm) {
+					// SHAKE256_512 is a special case, requiring the 512 bit value within the parameter definition
+					ASN1Integer asn1Integer = ASN1Integer.getInstance(asn1Sequence.getObjectAt(1));
+					assertNotNull(asn1Integer);
+					assertNotNull(asn1Integer.getValue());
+					assertEquals(512, asn1Integer.getValue().intValue());
+
+				} else if (digestAlgosWithParameter().contains(digestAlgorithm)) {
+					assertInstanceOf(DERNull.class, asn1Sequence.getObjectAt(1));
+				}
+
+				assertFalse(result.contains(digestAlgorithm), String.format(
+						"DigestAlgorithm '%s' is already present within the list!", digestAlgorithm.getName()));
+				result.add(digestAlgorithm);
+			}
+
+		} catch (Exception e) {
+			fail(e.getMessage());
+		}
+	}
+
+	private static List<DigestAlgorithm> digestAlgosWithParameter() {
+		// NOTE: SHA-1 and RIPEMD may be defined with NULL parameter present or omitted.
+		// On 14/07/2025 BC includes the NULL for them, thus we enforce it too and will detect possible changes.
+		return Arrays.asList(DigestAlgorithm.SHA1, DigestAlgorithm.MD2, DigestAlgorithm.MD5, DigestAlgorithm.RIPEMD160,
+				DigestAlgorithm.SHAKE256_512, DigestAlgorithm.SHAKE256_512);
 	}
 
 	protected void checkSignedAttributesOrder(byte[] encoded) {
@@ -169,7 +228,7 @@ public abstract class AbstractCAdESTestSignature extends AbstractPkiFactoryTestD
 				boolean arcTstV3Found = false;
 				for (Attribute attribute : unsignedAttributes.toASN1Structure().getAttributes()) {
 					if (OID.id_aa_ets_archiveTimestampV3.equals(attribute.getAttrType())) {
-						TimeStampToken arcTstV3 = CMSUtils.getTimeStampToken(attribute);
+						TimeStampToken arcTstV3 = CAdESUtils.getTimeStampToken(attribute);
 						assertNotNull(arcTstV3);
 
 						AttributeTable tstV3UnsignedAttributes = arcTstV3.getUnsignedAttributes();
@@ -198,7 +257,7 @@ public abstract class AbstractCAdESTestSignature extends AbstractPkiFactoryTestD
 						assertNotNull(digestAlgorithm);
 						assertEquals(getSignatureParameters().getArchiveTimestampParameters().getDigestAlgorithm(), digestAlgorithm);
 
-						ASN1Sequence certHashes = CMSUtils.getCertificatesHashIndex(atsHashIndexValue);
+						ASN1Sequence certHashes = CAdESUtils.getCertificatesHashIndex(atsHashIndexValue);
 						List<DEROctetString> certHashesList = DSSASN1Utils.getDEROctetStrings(certHashes);
 
 						Collection<X509CertificateHolder> certificates = cmsSignedData.getCertificates().getMatches(null);
@@ -215,7 +274,7 @@ public abstract class AbstractCAdESTestSignature extends AbstractPkiFactoryTestD
 							fail("Some certificates have not been found in SignedData.certificates!");
 						}
 
-						ASN1Sequence crlHashIndex = CMSUtils.getCRLHashIndex(atsHashIndexValue);
+						ASN1Sequence crlHashIndex = CAdESUtils.getCRLHashIndex(atsHashIndexValue);
 						List<DEROctetString> crlHashesList = DSSASN1Utils.getDEROctetStrings(crlHashIndex);
 
 						final SignedData signedData = SignedData.getInstance(cmsSignedData.toASN1Structure().getContent());
@@ -240,7 +299,7 @@ public abstract class AbstractCAdESTestSignature extends AbstractPkiFactoryTestD
 							fail("Some crls have not been found in SignedData.certificates!");
 						}
 
-						ASN1Sequence unsignedAttributesHashIndex = CMSUtils.getUnsignedAttributesHashIndex(atsHashIndexValue);
+						ASN1Sequence unsignedAttributesHashIndex = CAdESUtils.getUnsignedAttributesHashIndex(atsHashIndexValue);
 						List<DEROctetString> unsignedAttrsHashesList = DSSASN1Utils.getDEROctetStrings(unsignedAttributesHashIndex);
 
 						final ASN1EncodableVector asn1EncodableVector = unsignedAttributes.toASN1EncodableVector();
@@ -249,7 +308,7 @@ public abstract class AbstractCAdESTestSignature extends AbstractPkiFactoryTestD
 							if (attribute == unsignedAttribute) {
 								continue; // skip current timestamp
 							}
-							List<byte[]> octetStringForAtsHashIndex = CMSUtils.getOctetStringForAtsHashIndex(unsignedAttribute, attrType);
+							List<byte[]> octetStringForAtsHashIndex = CAdESUtils.getOctetStringForAtsHashIndex(unsignedAttribute, attrType);
 							List<DEROctetString> attributeDerOctetStringHashes = octetStringForAtsHashIndex.stream()
 									.map(b -> new DEROctetString(DSSUtils.digest(digestAlgorithm, b))).collect(Collectors.toList());
 							for (DEROctetString derOctetStringDigest : attributeDerOctetStringHashes) {

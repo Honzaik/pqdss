@@ -27,7 +27,7 @@ import java.util.Arrays;
  * Represents the ToBeSigned data
  */
 @SuppressWarnings("serial")
-public class ToBeSigned implements Serializable{
+public class ToBeSigned implements Serializable {
 
 	/** The binaries to be signed */
 	private byte[] bytes;

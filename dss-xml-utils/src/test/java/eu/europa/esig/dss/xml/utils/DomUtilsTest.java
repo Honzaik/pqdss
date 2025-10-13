@@ -199,5 +199,71 @@ class DomUtilsTest {
 		assertNull(DomUtils.getElementById(
 				DomUtils.buildDOM("<el ids=\"signedData\">Text</el>"), "signedData"));
 	}
+
+	@Test
+	void createDeepCopyTest() {
+		Document document = DomUtils.buildDOM("<hello><el Id=\"signedData\"><content>Text</content></el></hello>");
+		Element documentElement = document.getDocumentElement();
+		assertEquals("hello", documentElement.getLocalName());
+
+		Node elNode = documentElement.getFirstChild();
+		assertEquals(Node.ELEMENT_NODE, elNode.getNodeType());
+
+		Element elElement = (Element) elNode;
+		assertEquals("el", elElement.getLocalName());
+		assertEquals("signedData", elElement.getAttribute("Id"));
+
+		Element copyElement = DomUtils.createDeepCopy(elElement);
+		assertNotNull(copyElement);
+		assertNotEquals(elElement, copyElement);
+		assertEquals("el", elElement.getLocalName());
+		assertEquals("signedData", elElement.getAttribute("Id"));
+
+		Node contentNode = copyElement.getFirstChild();
+		assertEquals(Node.ELEMENT_NODE, contentNode.getNodeType());
+
+		Element contentElement = (Element) contentNode;
+		assertEquals("content", contentElement.getLocalName());
+		assertEquals("Text", contentElement.getTextContent());
+
+		Node parentNodeCopy = copyElement.getParentNode();
+		assertEquals(Node.ELEMENT_NODE, parentNodeCopy.getNodeType());
+
+		Element parentElementCopy = (Element) parentNodeCopy;
+		assertEquals("hello", parentElementCopy.getLocalName());
+
+		document = DomUtils.buildDOM("<hello><el id=\"signedData\"><content>Text</content></el></hello>");
+		documentElement = document.getDocumentElement();
+		assertEquals("hello", documentElement.getLocalName());
+
+		elNode = documentElement.getFirstChild();
+		assertEquals(Node.ELEMENT_NODE, elNode.getNodeType());
+
+		elElement = (Element) elNode;
+		assertEquals("el", elElement.getLocalName());
+		assertEquals("", elElement.getAttribute("Id"));
+		assertEquals("signedData", elElement.getAttribute("id"));
+
+		copyElement = DomUtils.createDeepCopy(elElement);
+		assertNotNull(copyElement);
+		assertNotEquals(elElement, copyElement);
+		assertEquals("", elElement.getAttribute("Id"));
+		assertEquals("signedData", elElement.getAttribute("id"));
+
+		contentNode = copyElement.getFirstChild();
+		assertEquals(Node.ELEMENT_NODE, contentNode.getNodeType());
+
+		contentElement = (Element) contentNode;
+		assertEquals("content", contentElement.getLocalName());
+		assertEquals("Text", contentElement.getTextContent());
+
+		parentNodeCopy = copyElement.getParentNode();
+		assertEquals(Node.ELEMENT_NODE, parentNodeCopy.getNodeType());
+
+		parentElementCopy = (Element) parentNodeCopy;
+		assertEquals("hello", parentElementCopy.getLocalName());
+
+		assertNull(DomUtils.createDeepCopy(null));
+	}
 	
 }

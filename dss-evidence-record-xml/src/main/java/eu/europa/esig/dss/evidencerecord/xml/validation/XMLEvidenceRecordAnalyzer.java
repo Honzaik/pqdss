@@ -21,18 +21,21 @@
 package eu.europa.esig.dss.evidencerecord.xml.validation;
 
 import eu.europa.esig.dss.enumerations.EvidenceRecordTypeEnum;
+import eu.europa.esig.dss.evidencerecord.common.validation.DefaultEvidenceRecordAnalyzer;
+import eu.europa.esig.dss.evidencerecord.xml.definition.XMLERSElement;
 import eu.europa.esig.dss.evidencerecord.xml.definition.XMLERSNamespace;
 import eu.europa.esig.dss.evidencerecord.xml.definition.XMLERSPath;
 import eu.europa.esig.dss.model.DSSDocument;
 import eu.europa.esig.dss.spi.exception.IllegalInputException;
-import eu.europa.esig.dss.evidencerecord.common.validation.DefaultEvidenceRecordAnalyzer;
 import eu.europa.esig.dss.spi.x509.evidencerecord.EvidenceRecord;
+import eu.europa.esig.dss.xml.utils.DOMDocument;
 import eu.europa.esig.dss.xml.utils.DomUtils;
 import eu.europa.esig.xmlers.XMLEvidenceRecordFacade;
 import eu.europa.esig.xmlers.jaxb.EvidenceRecordType;
 import jakarta.xml.bind.JAXBException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 
 import javax.xml.stream.XMLStreamException;
@@ -70,17 +73,40 @@ public class XMLEvidenceRecordAnalyzer extends DefaultEvidenceRecordAnalyzer {
     }
 
     private Element toEvidenceRecordElement(DSSDocument document) {
+        Element erElement;
         try {
-            Document dom = DomUtils.buildDOM(document);
-            return DomUtils.getElement(dom, XMLERSPath.EVIDENCE_RECORD_PATH);
+            Node documentNode;
+            if (document instanceof DOMDocument) {
+                Node erNode = ((DOMDocument) document).getNode();
+                if (Node.ELEMENT_NODE == erNode.getNodeType() && XMLERSElement.EVIDENCE_RECORD.isSameTagName(erNode.getLocalName())) {
+                    return (Element) erNode;
+                }
+                documentNode = erNode;
+
+            } else {
+                documentNode = DomUtils.buildDOM(document);
+            }
+            erElement = DomUtils.getElement(documentNode, XMLERSPath.EVIDENCE_RECORD_PATH);
+
         } catch (Exception e) {
             throw new IllegalInputException(String.format("An XML file is expected : %s", e.getMessage()), e);
         }
+
+        if (erElement == null) {
+            throw new IllegalInputException(String.format(
+                    "No Evidence Record found within the provided document with name '%s'! " +
+                            "Please ensure the Evidence Record is present at the root level of the provided document.", document.getName()));
+        }
+        return erElement;
     }
 
     @Override
     public boolean isSupported(DSSDocument dssDocument) {
-        return DomUtils.startsWithXmlPreamble(dssDocument) && canBuildEvidenceRecord(dssDocument);
+        return isXmlContent(dssDocument) && canBuildEvidenceRecord(dssDocument);
+    }
+
+    private boolean isXmlContent(DSSDocument document) {
+        return document instanceof DOMDocument || DomUtils.startsWithXmlPreamble(document);
     }
 
     private boolean canBuildEvidenceRecord(DSSDocument dssDocument) {
@@ -117,7 +143,8 @@ public class XMLEvidenceRecordAnalyzer extends DefaultEvidenceRecordAnalyzer {
             evidenceRecord.setFilename(document.getName());
             evidenceRecord.setOrigin(evidenceRecordOrigin);
             evidenceRecord.setManifestFile(manifestFile);
-            evidenceRecord.setDetachedContents(detachedContents);
+            evidenceRecord.setDetachedContents(getEvidenceRecordDetachedContents());
+            evidenceRecord.setEmbeddedEvidenceRecordHelper(embeddedEvidenceRecordHelper);
             return evidenceRecord;
         }
         return null;

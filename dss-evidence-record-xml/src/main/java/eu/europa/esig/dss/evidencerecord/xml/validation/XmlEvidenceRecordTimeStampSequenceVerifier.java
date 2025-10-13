@@ -74,9 +74,10 @@ public class XmlEvidenceRecordTimeStampSequenceVerifier extends EvidenceRecordTi
     @Override
     protected List<? extends DigestValueGroup> getHashTree(
             List<? extends DigestValueGroup> originalHashTree, List<DSSDocument> detachedContents, ManifestFile manifestFile,
-            ArchiveTimeStampChainObject archiveTimeStampChain, DSSMessageDigest lastTimeStampHash, DSSMessageDigest lastTimeStampSequenceHash) {
+            ArchiveTimeStampChainObject archiveTimeStampChain, ArchiveTimeStampObject archiveTimeStamp,
+            DSSMessageDigest lastTimeStampHash, DSSMessageDigest lastTimeStampSequenceHash) {
         final List<? extends DigestValueGroup> hashTree = super.getHashTree(
-                originalHashTree, detachedContents, manifestFile, archiveTimeStampChain, lastTimeStampHash, lastTimeStampSequenceHash);
+                originalHashTree, detachedContents, manifestFile, archiveTimeStampChain, archiveTimeStamp, lastTimeStampHash, lastTimeStampSequenceHash);
 
         // HashTree renewal time-stamp shall cover one or more data objects
         if (lastTimeStampSequenceHash != null && !lastTimeStampSequenceHash.isEmpty()) {

@@ -38,7 +38,6 @@ import org.bouncycastle.asn1.ASN1InputStream;
 import org.bouncycastle.asn1.ASN1Integer;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.ASN1OctetString;
-import org.bouncycastle.asn1.ASN1OutputStream;
 import org.bouncycastle.asn1.ASN1Primitive;
 import org.bouncycastle.asn1.ASN1Sequence;
 import org.bouncycastle.asn1.BERTags;
@@ -74,15 +73,16 @@ import org.bouncycastle.cert.ocsp.OCSPResp;
 import org.bouncycastle.cms.CMSSignedData;
 import org.bouncycastle.cms.SignerId;
 import org.bouncycastle.cms.SignerInformation;
+import org.bouncycastle.cms.SignerInformationStore;
 import org.bouncycastle.crypto.signers.PlainDSAEncoding;
 import org.bouncycastle.crypto.signers.StandardDSAEncoding;
+import org.bouncycastle.operator.DefaultDigestAlgorithmIdentifierFinder;
 import org.bouncycastle.tsp.TimeStampToken;
 import org.bouncycastle.util.BigIntegers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.security.auth.x500.X500Principal;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.security.PublicKey;
@@ -161,6 +161,18 @@ public final class DSSASN1Utils {
 	 */
 	public static byte[] getDEREncoded(ASN1Encodable asn1Encodable) {
 		return getEncoded(asn1Encodable, ASN1Encoding.DER);
+	}
+
+	/**
+	 * This method returns DL encoded ASN1 attribute. The {@code IOException} is
+	 * transformed in {@code DSSException}.
+	 *
+	 * @param asn1Encodable
+	 *            asn1Encodable to be DL encoded
+	 * @return array of bytes representing the DL encoded asn1Encodable
+	 */
+	public static byte[] getDLEncoded(ASN1Encodable asn1Encodable) {
+		return getEncoded(asn1Encodable, ASN1Encoding.DL);
 	}
 
 	/**
@@ -277,14 +289,7 @@ public final class DSSASN1Utils {
 	 * @return the DER encoded CMSSignedData
 	 */
 	public static byte[] getDEREncoded(final CMSSignedData data) {
-		try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-			final ASN1OutputStream asn1OutputStream = ASN1OutputStream.create(baos, ASN1Encoding.DER);
-			asn1OutputStream.writeObject(data.toASN1Structure());
-			asn1OutputStream.close();
-			return baos.toByteArray();
-		} catch (IOException e) {
-			throw new DSSException("Unable to encode to DER", e);
-		}
+		return getDEREncoded(data.toASN1Structure());
 	}
 
 	/**
@@ -310,6 +315,21 @@ public final class DSSASN1Utils {
 			return getDEREncoded(ASN1Primitive.fromByteArray(bytes));
 		} catch (IOException e) {
 			throw new DSSException("Unable to encode to DER", e);
+		}
+	}
+
+	/**
+	 * Returns the ASN.1 DL encoded representation of {@code byte} array.
+	 *
+	 * @param bytes
+	 *             the binary array to encode
+	 * @return the DL encoded bytes
+	 */
+	public static byte[] getDLEncoded(final byte[] bytes) {
+		try {
+			return getDLEncoded(ASN1Primitive.fromByteArray(bytes));
+		} catch (IOException e) {
+			throw new DSSException("Unable to encode to DL", e);
 		}
 	}
 
@@ -365,8 +385,31 @@ public final class DSSASN1Utils {
 	}
 
 	/**
-	 * This method computes the digest of an ASN1 signature policy (used in CAdES)
+	 * Returns {@code ASN1Encodable} of the {@code attribute}
 	 *
+	 * @param attribute {@link Attribute}
+	 * @return {@link ASN1Encodable}
+	 */
+	public static ASN1Encodable getAsn1Encodable(Attribute attribute) {
+		if (attribute == null) {
+			return null;
+		}
+		if (attribute.getAttrValues().size() == 1) {
+			return attribute.getAttrValues().getObjectAt(0);
+		} else {
+			if (LOG.isDebugEnabled()) {
+				LOG.warn("Only one value is allowed within attribute set! Found {} : {}.", attribute.getAttrValues().size(),
+						Utils.toHex(DSSASN1Utils.getDEREncoded(attribute)));
+			} else {
+				LOG.warn("Only one value is allowed within attribute set! Found {}.", attribute.getAttrValues().size());
+			}
+			return null;
+		}
+	}
+
+	/**
+	 * This method computes the digest of an ASN1 signature policy (used in CAdES)
+	 * <p>
 	 * TS 101 733 5.8.1 : If the signature policy is defined using ASN.1, then the hash is calculated on the value
 	 * without the outer type and length
 	 * fields, and the hashing algorithm shall be as specified in the field sigPolicyHash.
@@ -423,16 +466,16 @@ public final class DSSASN1Utils {
 	 * @return the ASN.1 algorithm identifier structure
 	 */
 	public static AlgorithmIdentifier getAlgorithmIdentifier(DigestAlgorithm digestAlgorithm) {
-
-		/*
-		 * The recommendation (cf. RFC 3380 section 2.1) is to omit the parameter for SHA-1, but some implementations
-		 * still expect a
-		 * NULL there. Therefore we always include a NULL parameter even with SHA-1, despite the recommendation, because
-		 * the RFC
-		 * states that implementations SHOULD support it as well anyway
-		 */
-		final ASN1ObjectIdentifier asn1ObjectIdentifier = new ASN1ObjectIdentifier(digestAlgorithm.getOid());
-		return new AlgorithmIdentifier(asn1ObjectIdentifier, DERNull.INSTANCE);
+		// See {@link <a href="https://github.com/bcgit/bc-java/commit/131c39e5d86da9b4e23d48588ce095c13626a129">BC contribution</a>}
+		// Fixes {@link <a href="https://ec.europa.eu/digital-building-blocks/tracker/browse/DSS-3651">DSS-3651</a>}
+		if (DigestAlgorithm.SHAKE256_512 == digestAlgorithm) {
+			// Special case, requiring the parameter definition. BC handles only the signature algorithm properly.
+			ASN1ObjectIdentifier asn1OID = new ASN1ObjectIdentifier(DigestAlgorithm.SHAKE256_512.getOid());
+			return new AlgorithmIdentifier(asn1OID, new ASN1Integer(512));
+		} else {
+			// General handling
+			return new DefaultDigestAlgorithmIdentifierFinder().find(digestAlgorithm.getOid());
+		}
 	}
 
 	/**
@@ -739,9 +782,22 @@ public final class DSSASN1Utils {
 	 * @param cms
 	 *            CMSSignedData
 	 * @return returns {@code SignerInformation}
+	 * @deprecated since DSS 6.3. Please use {@code #getFirstSignerInformation(cms.getSignerInfos())} method instead.
 	 */
+	@Deprecated
 	public static SignerInformation getFirstSignerInformation(final CMSSignedData cms) {
-		final Collection<SignerInformation> signers = cms.getSignerInfos().getSigners();
+		return getFirstSignerInformation(cms.getSignerInfos());
+	}
+
+	/**
+	 * Returns the first {@code SignerInformation} extracted from {@code SignerInformationStore}.
+	 *
+	 * @param signerInformationStore
+	 *            {@link SignerInformationStore}
+	 * @return returns {@code SignerInformation}
+	 */
+	public static SignerInformation getFirstSignerInformation(final SignerInformationStore signerInformationStore) {
+		final Collection<SignerInformation> signers = signerInformationStore.getSigners();
 		if (signers.size() > 1) {
 			LOG.warn("!!! The framework handles only one signer (SignerInformation) !!!");
 		}
@@ -779,7 +835,9 @@ public final class DSSASN1Utils {
 	 *
 	 * @param certToken {@link CertificateToken}
 	 * @return a list of {@link String}s
+	 * @deprecated since DSS 6.3. See {@code CertificateExtensionUtils#getExtendedKeyUsage(CertificateToken)}
 	 */
+	@Deprecated
 	public static List<String> getExtendedKeyUsage(CertificateToken certToken) {
 		try {
 			return certToken.getCertificate().getExtendedKeyUsage();
@@ -935,7 +993,7 @@ public final class DSSASN1Utils {
 
 	/**
 	 * Converts the ANS.1 binary signature value to the concatenated (plain) R || S format if required
-	 * 
+	 * <p>
 	 * NOTE: used in XAdES and JAdES
 	 *
 	 * @param algorithm
@@ -955,7 +1013,7 @@ public final class DSSASN1Utils {
 
 	/**
 	 * Converts an ASN.1 value to a concatenation string of R and S from ECDSA/DSA encryption algorithm
-	 *
+	 * <p>
 	 * The JAVA JCE ECDSA/DSA Signature algorithm creates ASN.1 encoded (r,s) value pairs.
 	 *
 	 * @param asn1SignatureValue

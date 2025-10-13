@@ -21,21 +21,20 @@
 package eu.europa.esig.dss.cades.extension;
 
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import org.junit.jupiter.api.Test;
-
+import eu.europa.esig.dss.alert.exception.AlertException;
 import eu.europa.esig.dss.cades.CAdESSignatureParameters;
 import eu.europa.esig.dss.cades.signature.CAdESService;
 import eu.europa.esig.dss.enumerations.SignatureLevel;
 import eu.europa.esig.dss.enumerations.SignaturePackaging;
 import eu.europa.esig.dss.model.DSSDocument;
-import eu.europa.esig.dss.model.DSSException;
 import eu.europa.esig.dss.model.InMemoryDocument;
 import eu.europa.esig.dss.model.SignatureValue;
 import eu.europa.esig.dss.model.ToBeSigned;
 import eu.europa.esig.dss.test.PKIFactoryAccess;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class CAdESExtensionNoDetachedFileBToLTATest extends PKIFactoryAccess {
 	
@@ -61,7 +60,7 @@ class CAdESExtensionNoDetachedFileBToLTATest extends PKIFactoryAccess {
 		CAdESSignatureParameters extensionParameters = new CAdESSignatureParameters();
 		extensionParameters.setSignatureLevel(SignatureLevel.CAdES_BASELINE_LTA);
 		
-		Exception exception = assertThrows(DSSException.class, () -> service.extendDocument(signedDocument, extensionParameters));
+		Exception exception = assertThrows(AlertException.class, () -> service.extendDocument(signedDocument, extensionParameters));
 		assertTrue(exception.getMessage().contains("Detached file not found!"));
 		
 	}

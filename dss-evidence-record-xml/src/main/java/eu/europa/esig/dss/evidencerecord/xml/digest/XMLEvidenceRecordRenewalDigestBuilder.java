@@ -36,7 +36,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * This class builds digest for an RFC 6283 XMLERS evidence record's renewal
+ * This class builds digest for an RFC 6283 XMLERS evidence record's renewal.
+ * <p>
+ * NODE: If the original XML Evidence Record is being used as a part of another XML document and
+ * an inclusive canonicalization is used, please make sure the {@code eu.europa.esig.dss.xml.utils.DOMDocument}
+ * implementation of the {@code eu.europa.esig.dss.model.DSSDocument} is used on instance creation of the current class,
+ * in order to provide information about the parent namespaces for the canonicalization process.
+ * Otherwise, the canonicalization will be performed as on XML Evidence Record's element alone and
+ * the final hash may be different.
  *
  */
 public class XMLEvidenceRecordRenewalDigestBuilder extends AbstractEvidenceRecordRenewalDigestBuilder {
@@ -137,6 +144,7 @@ public class XMLEvidenceRecordRenewalDigestBuilder extends AbstractEvidenceRecor
     public List<Digest> buildHashTreeRenewalDigestGroup() {
         final List<Digest> result = new ArrayList<>();
 
+        DigestAlgorithm digestAlgorithm = getDigestAlgorithmOrDefault();
         XmlArchiveTimeStampChainObject lastArchiveTimeStampChainObject = (XmlArchiveTimeStampChainObject) getLastArchiveTimeStampChainObject();
         Digest archiveTimeStampSequenceDigest = getArchiveTimeStampSequenceDigestHelper()
                 .buildArchiveTimeStampSequenceDigest(digestAlgorithm, canonicalizationMethod,
@@ -150,7 +158,7 @@ public class XMLEvidenceRecordRenewalDigestBuilder extends AbstractEvidenceRecor
                 result.add(dataObjectDigest);
             }
         } else {
-            LOG.warn("No detached content have been provided! Computation of digest for data object has been skipped.");
+            LOG.info("No detached content have been provided. Computation of digest for data object has been skipped.");
         }
 
         return result;
