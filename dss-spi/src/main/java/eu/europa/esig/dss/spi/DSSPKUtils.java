@@ -26,6 +26,7 @@ import eu.europa.esig.dss.utils.Utils;
 import org.bouncycastle.jcajce.CompositePublicKey;
 import org.bouncycastle.jcajce.interfaces.EdDSAPublicKey;
 import org.bouncycastle.jcajce.interfaces.MLDSAPublicKey;
+import org.bouncycastle.jcajce.interfaces.SLHDSAPublicKey;
 import org.bouncycastle.jcajce.interfaces.XDHPublicKey;
 import org.bouncycastle.jce.provider.JCEECPublicKey;
 import org.bouncycastle.jce.spec.ECParameterSpec;
@@ -148,7 +149,11 @@ public final class DSSPKUtils {
 		} else if (publicKey instanceof CompositePublicKey) {
 			CompositePublicKey compositePublicKey = (CompositePublicKey) publicKey;
 			return compositePublicKey.getEncoded().length;
-		} else {
+		} else if (publicKey instanceof SLHDSAPublicKey) {
+			SLHDSAPublicKey slhdsaPublicKey = (SLHDSAPublicKey) publicKey;
+			return slhdsaPublicKey.getEncoded().length;
+		}
+		else {
 			LOG.warn("Unknown public key infrastructure: {}", publicKey.getClass().getName());
 		}
 		return publicKeySize;

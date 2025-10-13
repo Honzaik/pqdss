@@ -64,10 +64,10 @@ public enum DigestAlgorithm implements OidAndUriBasedEnum {
 	SHA3_512("SHA3-512", "SHA3-512", "2.16.840.1.101.3.4.2.10", "http://www.w3.org/2007/05/xmldsig-more#sha3-512", "S3-512", 64),
 
 	/** SHAKE-128 */
-	SHAKE128("SHAKE-128", "SHAKE128", "2.16.840.1.101.3.4.2.11", null),
+	SHAKE128("SHAKE-128", "SHAKE128", "2.16.840.1.101.3.4.2.11", "http://www.w3.org/2023/02/xmldsig-pqc#shake128"),
 
 	/** SHAKE-256 */
-	SHAKE256("SHAKE-256", "SHAKE256", "2.16.840.1.101.3.4.2.12", null),
+	SHAKE256("SHAKE-256", "SHAKE256", "2.16.840.1.101.3.4.2.12", "http://www.w3.org/2023/02/xmldsig-pqc#shake256"),
 
 	/** SHAKE-256 + output 512bits */
 	SHAKE256_512("SHAKE256-512", "SHAKE256-512", "2.16.840.1.101.3.4.2.18", null),

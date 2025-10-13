@@ -58,6 +58,16 @@ public enum EncryptionAlgorithm implements OidBasedEnum {
 	ML_DSA_65("ML-DSA-65", "2.16.840.1.101.3.4.3.18", "ML-DSA-65"),
 	ML_DSA_87("ML-DSA-87", "2.16.840.1.101.3.4.3.19", "ML-DSA-87"),
 
+	/** SLH-DSA */
+	SLH_DSA_SHA2_128S("SLH-DSA-SHA2-128S", "2.16.840.1.101.3.4.3.20", "SLH-DSA-SHA2-128S"),
+	SLH_DSA_SHA2_128F("SLH-DSA-SHA2-128F", "2.16.840.1.101.3.4.3.21", "SLH-DSA-SHA2-128F"),
+	SLH_DSA_SHA2_256S("SLH-DSA-SHA2-256S", "2.16.840.1.101.3.4.3.24", "SLH-DSA-SHA2-256S"),
+	SLH_DSA_SHA2_256F("SLH-DSA-SHA2-256F", "2.16.840.1.101.3.4.3.25", "SLH-DSA-SHA2-256F"),
+	SLH_DSA_SHAKE_128S("SLH-DSA-SHAKE-128S", "2.16.840.1.101.3.4.3.26", "SLH-DSA-SHAKE-128S"),
+	SLH_DSA_SHAKE_128F("SLH-DSA-SHAKE-128F", "2.16.840.1.101.3.4.3.27", "SLH-DSA-SHAKE-128F"),
+	SLH_DSA_SHAKE_256S("SLH-DSA-SHAKE-256S", "2.16.840.1.101.3.4.3.30", "SLH-DSA-SHAKE-256S"),
+	SLH_DSA_SHAKE_256F("SLH-DSA-SHAKE-256F", "2.16.840.1.101.3.4.3.31", "SLH-DSA-SHAKE-256F"),
+
 	/** COMPOSITES (hybrids) */
 	//USING PRE-HASH FOR UNIFIED HASH which is needed for CMS
 	HASH_ML_DSA_44_ECDSA_P256_SHA256("HashMLDSA44-ECDSA-P256-SHA256", "2.16.840.1.114027.80.8.1.43", "HashMLDSA44-ECDSA-P256-SHA256"),
@@ -235,6 +245,9 @@ public enum EncryptionAlgorithm implements OidBasedEnum {
 		if (this.isCompositeFamily() && encryptionAlgorithm.isCompositeFamily()) {
 			return true;
 		}
+		if (this.isSLHDSAFamily() && encryptionAlgorithm.isSLHDSAFamily()) {
+			return true;
+		}
 		return false;
 	}
 
@@ -254,6 +267,9 @@ public enum EncryptionAlgorithm implements OidBasedEnum {
 	}
 	private boolean isCompositeFamily() {
 		return HASH_ML_DSA_44_ECDSA_P256_SHA256 == this || HASH_ML_DSA_87_ECDSA_P384_SHA512 == this || HASH_ML_DSA_65_ECDSA_P384_SHA512 == this;
+	}
+	private boolean isSLHDSAFamily() {
+		return SLH_DSA_SHA2_128S == this|| SLH_DSA_SHA2_128F == this || SLH_DSA_SHA2_256S == this || SLH_DSA_SHA2_256F == this || SLH_DSA_SHAKE_128S == this|| SLH_DSA_SHAKE_128F == this || SLH_DSA_SHAKE_256S == this || SLH_DSA_SHAKE_256F == this;
 	}
 
 }
