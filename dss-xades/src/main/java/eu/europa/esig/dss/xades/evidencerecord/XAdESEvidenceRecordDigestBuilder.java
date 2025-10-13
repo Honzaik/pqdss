@@ -355,7 +355,7 @@ public class XAdESEvidenceRecordDigestBuilder extends AbstractSignatureEvidenceR
                 }
             } else {
                 XMLSignatureInput input = reference.getContentsAfterTransformation();
-                digest = getDigestValueOnInputStream(input.getOctetStream());
+                digest = getDigestValueOnInputStream(input.getUnprocessedInput());
             }
             return digest;
 
