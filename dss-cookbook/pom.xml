@@ -35,6 +35,10 @@
 			<type>test-jar</type>
 			<scope>compile</scope>
 		</dependency>
+        <dependency>
+            <groupId>eu.europa.ec.joinup.sd-dss</groupId>
+            <artifactId>dss-cms-stream</artifactId> <!-- Used within test samples -->
+        </dependency>
 		<dependency>
 			<groupId>eu.europa.ec.joinup.sd-dss</groupId>
 			<artifactId>dss-asic-cades</artifactId>
