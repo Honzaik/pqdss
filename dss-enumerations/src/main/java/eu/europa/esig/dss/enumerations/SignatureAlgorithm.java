@@ -369,9 +369,9 @@ public enum SignatureAlgorithm implements OidAndUriBasedEnum {
     /**
      * ML-DSA (no pre-hash)
      */
-    ML_DSA_44(EncryptionAlgorithm.ML_DSA_44, DigestAlgorithm.SHAKE256),
-    ML_DSA_65(EncryptionAlgorithm.ML_DSA_65, DigestAlgorithm.SHAKE256),
-    ML_DSA_87(EncryptionAlgorithm.ML_DSA_87, DigestAlgorithm.SHAKE256),
+    ML_DSA_44(EncryptionAlgorithm.ML_DSA_44, DigestAlgorithm.SHA512),
+    ML_DSA_65(EncryptionAlgorithm.ML_DSA_65, DigestAlgorithm.SHA512),
+    ML_DSA_87(EncryptionAlgorithm.ML_DSA_87, DigestAlgorithm.SHA512),
 
     /**
      * SLH-DSA (no pre-hash)
